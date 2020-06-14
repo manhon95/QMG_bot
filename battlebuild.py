@@ -3,19 +3,19 @@ import sqlite3
 import function
 import thread_lock
 import status_handler
-import buffer
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
 
 
     #------------------------------------------Battle------------------------------------------
-def battle_info(bot, country, space_list, card_id, lock_id, db):
+def battle_info(bot, country, space_list, card_id, lock_id, session):
     print('battle info')
-    print(space_list)    
+    print(space_list)  
+    db = sqlite3.connect(session.get_db_dir())  
     name_list = function.get_name_list(space_list, db)
     print(name_list)
-    buffer.space_list = space_list
+    session.space_list_buffer = space_list
     chat_id = db.execute("select playerid from country where id = :country;", {'country':country}).fetchall()
     text = 'Choose a space to battle'
     keyboard = []
@@ -33,17 +33,18 @@ def battle_info(bot, country, space_list, card_id, lock_id, db):
     return chat_id[0][0], text, reply_markup
 
 
-def battle_cb(bot, query, query_list, db):
+def battle_cb(bot, query, query_list, session):
+    db = sqlite3.connect(session.get_db_dir())
     if query_list[2] == 'confirm':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
-        battle(bot, query_list[1], query_list[3], query_list[4], query_list[5], db)
+        battle(bot, query_list[1], query_list[3], query_list[4], query_list[5], session)
         thread_lock.release_lock(query_list[-1])
     elif query_list[2] == 'pass':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
         thread_lock.release_lock(query_list[-1])
     else:  
         if query_list[2] == 'back':
-            info = battle_info(bot, query_list[1] , buffer.space_list, query_list[3], query_list[-1], db)
+            info = battle_info(bot, query_list[1] , session.space_list_buffer, query_list[3], query_list[-1], session)
             text = info[1]
             reply_markup = info[2]
         else:
@@ -62,7 +63,8 @@ def battle_cb(bot, query, query_list, db):
         db.commit()
 
 
-def battle(bot, active_country, piece, space, card_id, db):
+def battle(bot, active_country, piece, space, card_id, session):
+    db = sqlite3.connect(session.get_db_dir())
     function.updatesupply(db)
     space_name = db.execute("select distinct name from space where spaceid = :space;", {'space':space}).fetchall()
     active_country_name = db.execute("select name from country where id = :country;", {'country':active_country}).fetchall()
@@ -74,7 +76,7 @@ def battle(bot, active_country, piece, space, card_id, db):
         text =" Empty space " + space_name[0][0] + " is battled by " + active_country_name[0][0]
     else:
         country_name = db.execute("select id, name from country where id = (select control from piece where pieceid = :piece);", {'piece':piece}).fetchall()
-        status_handler.status_battle_handler(bot, active_country, country_name[0][0], space, db)
+        status_handler.status_battle_handler(bot, active_country, country_name[0][0], space, session)
         if db.execute("select noremove from piece where pieceid = :piece;", {'piece':piece}).fetchall()[0][0] == 0:
             db.execute("update piece set location = 'none' where pieceid = :piece;", {'piece':piece})
             db.commit()
@@ -84,9 +86,9 @@ def battle(bot, active_country, piece, space, card_id, db):
     bot.send_message(chat_id = group_chat[0][0], text = text)        
     function.updatecontrol(bot, db)
     lock_id = thread_lock.add_lock()
-    status_handler.send_status_card(bot, active_country, 'Battle', lock_id, db, passive_country_id = passive_country[0][0], piece_id = piece, space_id = space, card_id = card_id)
+    status_handler.send_status_card(bot, active_country, 'Battle', lock_id, session, passive_country_id = passive_country[0][0], piece_id = piece, space_id = space, card_id = card_id)
     import air
-    air.check_reposition(bot, db)
+    air.check_reposition(bot, session)
     db.commit()
     
 
@@ -111,7 +113,8 @@ class remove_obj():
                 text += " [" + info + ": " + str(info_list[info]) + "]"
         print(text)
 
-    def remove_info(self, db):
+    def remove_info(self, session):
+        db = sqlite3.connect(session.get_db_dir())
         print('remove info')
         print(self.space_list)
         name_list = function.get_name_list(self.space_list, db)
@@ -123,11 +126,12 @@ class remove_obj():
         return chat_id[0][0], text, reply_markup
 
 
-    def remove_cb(self, bot, query, query_list, db):
+    def remove_cb(self, bot, query, query_list, session):
+        db = sqlite3.connect(session.get_db_dir())
         if query_list[1] == 'confirm':
             bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
             self.piece_id = query_list[2]
-            remove(bot, self.country, self.piece_id, self.space_id, self.card_id, db)
+            remove(bot, self.country, self.piece_id, self.space_id, self.card_id, session)
             thread_lock.release_lock(self.lock_id)
             remove_list.pop(self.remove_id)
         elif query_list[1] == 'pass':
@@ -137,7 +141,7 @@ class remove_obj():
         else:  
             if query_list[1] == 'back':
                 self.space_id = None
-                info = self.remove_info(db)
+                info = self.remove_info(session)
                 text = info[2]
                 reply_markup = info[3]
             else:
@@ -160,7 +164,8 @@ class remove_obj():
             reply_markup = InlineKeyboardMarkup(keyboard)
             bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text=text, reply_markup=reply_markup)
 
-def remove(bot, active_country, piece, space, card_id, db):
+def remove(bot, active_country, piece, space, card_id, session):
+    db = sqlite3.connect(session.get_db_dir())
     function.updatesupply(db)
     space_name = db.execute("select distinct name from space where spaceid = :space;", {'space':space}).fetchall()
     piece_type = db.execute("select type from piece where pieceid = :piece;", {'piece':piece}).fetchall()
@@ -181,9 +186,9 @@ def remove(bot, active_country, piece, space, card_id, db):
     bot.send_message(chat_id = group_chat[0][0], text = text)
     function.updatecontrol(bot, db)
     lock_id = thread_lock.add_lock()
-    status_handler.send_status_card(bot, active_country, 'Remove', lock_id, db, piece_id = piece, space_id = space, card_id = card_id)
+    status_handler.send_status_card(bot, active_country, 'Remove', lock_id, session, piece_id = piece, space_id = space, card_id = card_id)
     import air
-    air.check_reposition(bot, db)
+    air.check_reposition(bot, session)
     db.commit()
     
     #------------------------------------------Self_Remove------------------------------------------
@@ -206,7 +211,8 @@ class self_remove():
                 text += " [" + info + ": " + str(info_list[info]) + "]"
         print(text)
 
-    def self_remove_info(self, db):
+    def self_remove_info(self, session):
+        db = sqlite3.connect(session.get_db_dir())
         print('self_remove info')
         print(self.space_list)
         name_list = function.get_name_list(self.space_list, db)
@@ -219,11 +225,12 @@ class self_remove():
         return chat_id[0][0], text, reply_markup
 
 
-    def self_remove_cb(self, bot, query, query_list, db):
+    def self_remove_cb(self, bot, query, query_list, session):
+        db = sqlite3.connect(session.get_db_dir())
         if query_list[1] == 'confirm':
             bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
             self.piece_id = query_list[2]
-            remove(bot, self.country, self.piece_id, self.space_id, self.card_id, db)
+            remove(bot, self.country, self.piece_id, self.space_id, self.card_id, session)
             thread_lock.release_lock(self.lock_id)
             self_remove_list.pop(self.self_remove_id)
         elif query_list[1] == 'pass':
@@ -233,9 +240,9 @@ class self_remove():
         else:  
             if query_list[1] == 'back':
                 self.space_id = None
-                info = self.self_remove_info(db)
-                text = info[2]
-                reply_markup = info[3]
+                info = self.self_remove_info(session)
+                text = info[1]
+                reply_markup = info[2]
             else:
                 self.space_id = query_list[1]
                 location = db.execute("select name from space where spaceid = :id", {'id':self.space_id}).fetchall()
@@ -287,11 +294,12 @@ class move():
         return chat_id[0][0], text, reply_markup
 
 
-    def move_cb(self, bot, query, query_list, db):
+    def move_cb(self, bot, query, query_list, session):
+        db = sqlite3.connect(session.get_db_dir())
         if query_list[1] == 'confirm':
             bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
             self.piece_id = query_list[3]
-            move(bot, self.country, self.piece_id, self.space_id, db)
+            move(bot, self.country, self.piece_id, self.space_id, session)
             thread_lock.release_lock(self.lock_id)
             move_list.pop(self.move_id)
         elif query_list[1] == 'pass':
@@ -322,7 +330,8 @@ class move():
             bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text=text, reply_markup=reply_markup)
             db.commit()
 
-def move(bot, active_country, piece, space, db):
+def move(bot, active_country, piece, space, session):
+    db = sqlite3.connect(session.get_db_dir())
     function.updatesupply(db)
     space_name = db.execute("select distinct name from space where spaceid = :space;", {'space':space}).fetchall()
     active_country_name = db.execute("select name from country where id = :country;", {'country':active_country}).fetchall()
@@ -333,18 +342,19 @@ def move(bot, active_country, piece, space, db):
     text = country_name[0][0] + " piece in " + space_name[0][0] + " is picked up by " + active_country_name[0][0]
     function.updatecontrol(bot, db)
     import air
-    air.check_reposition(bot, db)
+    air.check_reposition(bot, session)
     bot.send_message(chat_id = group_chat[0][0], text = text)
     
 
         
     #------------------------------------------Build------------------------------------------
-def build_info(bot, country, space_list, card_id, lock_id, db):
+def build_info(bot, country, space_list, card_id, lock_id, session):
     print('build info')
     print(space_list) 
+    db = sqlite3.connect(session.get_db_dir())
     name_list = function.get_name_list(space_list, db)
     print(name_list)
-    buffer.space_list = space_list
+    session.space_list_buffer = space_list
     remain_army_count = db.execute("select count(*) from piece where control = :country and type = 'army' and location = 'none';", {'country':country}).fetchall()[0][0]
     remain_navy_count = db.execute("select count(*) from piece where control = :country and type = 'navy' and location = 'none';", {'country':country}).fetchall()[0][0]
     remain_air_count = db.execute("select count(*) from piece where control = :country and type = 'air' and location = 'none';", {'country':country}).fetchall()[0][0]
@@ -359,17 +369,18 @@ def build_info(bot, country, space_list, card_id, lock_id, db):
     return chat_id[0][0], text, reply_markup
 
 
-def build_cb(bot, query, query_list, db):
+def build_cb(bot, query, query_list, session):
+    db = sqlite3.connect(session.get_db_dir())
     if query_list[2] == 'confirm':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
-        build(bot,query_list[1], query_list[3], query_list[4], db)
+        build(bot,query_list[1], query_list[3], query_list[4], session)
         thread_lock.release_lock(query_list[-1])
     elif query_list[2] == 'pass':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
         thread_lock.release_lock(query_list[-1])
     else:
         if query_list[2] == 'back':
-            info = build_info(bot, query_list[1] , buffer.space_list, query_list[3], query_list[-1], db)
+            info = build_info(bot, query_list[1] , session.space_list_buffer, query_list[3], query_list[-1], session)
             text = info[1]
             reply_markup = info[2]
         else:
@@ -381,15 +392,16 @@ def build_cb(bot, query, query_list, db):
         db.commit()
 
 
-def build(bot, active_country, space, card_id, db):
+def build(bot, active_country, space, card_id, session):
+    db = sqlite3.connect(session.get_db_dir())
     space_info = db.execute("select distinct name, type from space where spaceid = :space;", {'space':space}).fetchall()
     active_country_name = db.execute("select name from country where id = :country;", {'country':active_country}).fetchall()
     group_chat = db.execute("select chatid from game;").fetchall()
-    if over_build_handler(bot, active_country, space_info[0][1], db):
+    if over_build_handler(bot, active_country, space_info[0][1], session):
         text = active_country_name[0][0] + " do not remove piece to build"
         bot.send_message(chat_id = group_chat[0][0], text = text)
     else:
-        status_handler.status_build_handler(bot, active_country, db)
+        status_handler.status_build_handler(bot, active_country, session)
         piece = db.execute("select min(pieceid) from piece where location = 'none' and control = :country and type = :piece_type;", {'country':active_country, 'piece_type':function.terrain2type[space_info[0][1]]}).fetchall()
         db.execute("update piece set location = :location where pieceid = :piece;", {'location':space, 'piece':piece[0][0]})
         text = active_country_name[0][0] + " build in " + space_info[0][0]
@@ -397,23 +409,24 @@ def build(bot, active_country, space, card_id, db):
         function.updatecontrol(bot, db)
         function.updatesupply(db)
         lock_id = thread_lock.add_lock()
-        status_handler.send_status_card(bot, active_country, 'Build', lock_id, db, piece_id = piece[0][0], space_id = space, card_id = card_id)
+        status_handler.send_status_card(bot, active_country, 'Build', lock_id, session, piece_id = piece[0][0], space_id = space, card_id = card_id)
         import air
-        air.check_reposition(bot, db)
+        air.check_reposition(bot, session)
         db.commit()
 
 
 
     #------------------------------------------Recuit------------------------------------------
-def recuit_info(bot, country, space_list, card_id, lock_id, db):
+def recuit_info(bot, country, space_list, card_id, lock_id, session):
     print('recuit info')
     print(space_list) 
+    db = sqlite3.connect(session.get_db_dir())
     name_list = function.get_name_list(space_list, db)
     print(name_list)
     remain_army_count = db.execute("select count(*) from piece where control = :country and type = 'army' and location = 'none';", {'country':country}).fetchall()[0][0]
     remain_navy_count = db.execute("select count(*) from piece where control = :country and type = 'navy' and location = 'none';", {'country':country}).fetchall()[0][0]
     remain_air_count = db.execute("select count(*) from piece where control = :country and type = 'air' and location = 'none';", {'country':country}).fetchall()[0][0]
-    buffer.space_list = space_list
+    session.space_list_buffer = space_list
     chat_id = db.execute("select playerid from country where id = :country;", {'country':country}).fetchall()
     text = "Choose a space to recuit\n"
     text += "Remain army:" + str(remain_army_count) + "\n"
@@ -425,17 +438,18 @@ def recuit_info(bot, country, space_list, card_id, lock_id, db):
     return chat_id[0][0], text, reply_markup
 
 
-def recuit_cb(bot, query, query_list, db):
+def recuit_cb(bot, query, query_list, session):
+    db = sqlite3.connect(session.get_db_dir())
     if query_list[2] == 'confirm':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
-        recuit(bot,query_list[1], query_list[3], query_list[4], db)
+        recuit(bot,query_list[1], query_list[3], query_list[4], session)
         thread_lock.release_lock(query_list[-1])
     elif query_list[2] == 'pass':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
         thread_lock.release_lock(query_list[-1])
     else:
         if query_list[2] == 'back':
-            info = recuit_info(bot, query_list[1] , buffer.space_list, query_list[3], query_list[-1], db)
+            info = recuit_info(bot, query_list[1] , session.space_list_buffer, query_list[3], query_list[-1], session)
             text = info[1]
             reply_markup = info[2]
         else:
@@ -447,15 +461,16 @@ def recuit_cb(bot, query, query_list, db):
         db.commit()
 
 
-def recuit(bot, active_country, space, card_id, db):
+def recuit(bot, active_country, space, card_id, session):
+    db = sqlite3.connect(session.get_db_dir())
     space_info = db.execute("select distinct name, type from space where spaceid = :space;", {'space':space}).fetchall()
     active_country_name = db.execute("select name from country where id = :country;", {'country':active_country}).fetchall()
     group_chat = db.execute("select chatid from game;").fetchall()
-    if over_build_handler(bot, active_country, space_info[0][1], db):
+    if over_build_handler(bot, active_country, space_info[0][1], session):
         text = active_country_name[0][0] + " do not remove piece to recuit"
         bot.send_message(chat_id = group_chat[0][0], text = text)
     else:
-        status_handler.status_recuit_handler(bot, active_country, db)
+        status_handler.status_recuit_handler(bot, active_country, session)
         piece = db.execute("select min(pieceid) from piece where location = 'none' and control = :country and type = :piece_type;", {'country':active_country, 'piece_type':function.terrain2type[space_info[0][1]]}).fetchall()
         db.execute("update piece set location = :location where pieceid = :piece;", {'location':space, 'piece':piece[0][0]})
         text = active_country_name[0][0] + " recuit in " + space_info[0][0]
@@ -463,33 +478,35 @@ def recuit(bot, active_country, space, card_id, db):
         function.updatecontrol(bot, db)
         function.updatesupply(db)
         lock_id = thread_lock.add_lock()
-        status_handler.send_status_card(bot, active_country, 'Recruit', lock_id, db, piece_id = piece[0][0], space_id = space, card_id = card_id)
+        status_handler.send_status_card(bot, active_country, 'Recruit', lock_id, session, piece_id = piece[0][0], space_id = space, card_id = card_id)
         import air
-        air.check_reposition(bot, db)
+        air.check_reposition(bot, session)
         db.commit()
 
 
 
     #------------------------------------------Over_Build_Handler------------------------------------------
-def over_build_handler(bot, active_country, space_type, db):
+def over_build_handler(bot, active_country, space_type, session):
+    db = sqlite3.connect(session.get_db_dir())
     if db.execute("select count(*) from piece where location = 'none' and control = :country and type = :piece_type;", {'country':active_country, 'piece_type':function.terrain2type[space_type]}).fetchall()[0][0] == 0:
         lock_id = thread_lock.add_lock()
         space_list = function.control_space_list(active_country, db, space_type = space_type)
         self_remove_list.append(self_remove(active_country, space_list, None, lock_id, function.terrain2type[space_type]))
         self_remove_id = len(self_remove_list)-1
-        info = self_remove_list[self_remove_id].self_remove_info(db)
+        info = self_remove_list[self_remove_id].self_remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         thread_lock.thread_lock(lock_id)
     return (db.execute("select count(*) from piece where location = 'none' and control = :country and type = :piece_type;", {'country':active_country, 'piece_type':function.terrain2type[space_type]}).fetchall()[0][0] == 0)
 
     #------------------------------------------Restore------------------------------------------
-def restore(bot, piece, space, db):
+def restore(bot, piece, space, session):
+    db = sqlite3.connect(session.get_db_dir())
     space_info = db.execute("select distinct name, type from space where spaceid = :space;", {'space':space}).fetchall()
     group_chat = db.execute("select chatid from game;").fetchall()
     db.execute("update piece set location = :location where pieceid = :piece;", {'location':space, 'piece':piece})
     function.updatecontrol(bot, db)
     import air
-    air.check_reposition(bot, db)
+    air.check_reposition(bot, session)
     text = "Piece in " + space_info[0][0] + " not removed"
     bot.send_message(chat_id = group_chat[0][0], text = text)
     db.commit()

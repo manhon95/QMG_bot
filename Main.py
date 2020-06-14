@@ -10,21 +10,23 @@ import traceback
 import battlebuild
 import thread_lock
 import drawmap
-import backup
 import logging
-import log
 import status_handler
 import air
+import game_session
+import os
 
 from telegram import ReplyKeyboardRemove, ReplyKeyboardMarkup
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
 from telegram.ext.dispatcher import run_async
 
-updater = Updater(token='731906195:AAEjKS1Qv_vYn6whd1Niq6z6UPkwkemfvy4', workers=32)
+org_dir = os.getcwd()
+
+updater = Updater(token='731906195:AAEjKS1Qv_vYn6whd1Niq6z6UPkwkemfvy4', workers=32, use_context=True)
 dispatcher = updater.dispatcher
-logger = logging.getLogger('QMG_main')
 Admin = [678036043]
+logger = logging.getLogger('QMG_main')
 # create logger
 logger.setLevel(logging.DEBUG)
 # create console handler and set level to debug
@@ -39,54 +41,38 @@ logger.addHandler(ch)
 
 
 @run_async
-def trial(bot, update):
-    chat = bot.get_chat_member(update.message.chat_id,update.message.from_user.id).user
-    print(chat)
-    message = bot.send_message(chat_id=update.message.chat_id, text="userid:{} username:{} chatid:{}".format(update.message.from_user.id, update.message.from_user.name, update.message.chat.id), reply_markup = None)
-    print(message.message_id)
-    print(message.text)
-    
-    '''db = sqlite3.connect('database.db')
+def trial(update, context):
+    print('1')
+    bot = context.bot
+    session = game_session.find_session(update.message.chat_id)
+    print('found')
     try:
-        lock_id = thread_lock.add_lock()
-        space_list = function.control_space_list('su', db, space_type = 'land')
-        battlebuild.self_remove_list.append(battlebuild.self_remove('su', space_list, 297, lock_id, 'army'))
-        print("self_remove_id: " + str(len(battlebuild.self_remove_list)-1))
-        self_remove_id = len(battlebuild.self_remove_list)-1
-        info = battlebuild.self_remove_list[self_remove_id].self_remove_info(db)
-        bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
-        lock_id = thread_lock.add_lock()
-    except Exception:
-        traceback.print_exc()'''
-
-def draw_map(bot, update):
-    message_id = bot.send_message(chat_id=update.message.chat_id, text="Drawing map...").message_id
-    db = sqlite3.connect('database.db')
-    try:
-        bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
-        drawmap.drawmap(db)
-        keyboard = [[InlineKeyboardButton("❎", callback_data="['clear']")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        bot.send_photo(chat_id=update.message.chat_id, photo=open('pic/tmp.jpg', 'rb', ), timeout=1000, reply_markup=reply_markup)
-        bot.delete_message(chat_id=update.message.chat_id, message_id=message_id)
+        game.setup(bot, session)
     except Exception as e:
         traceback.print_exc()
+        text = "<b>Exception:</b> " + str(e)
+        bot.send_message(chat_id = session.get_session_id(), text = text, parse_mode=telegram.ParseMode.HTML)
+    
 
 @run_async
-def cb(bot, update):
+def cb(update, context):
+    bot = context.bot
     #query_list format = [current action, current country, data, next action]
     query = update.callback_query
+    print('query.message.chat_id ' + str(query.message.chat_id))
     try:
         logger.debug(query.from_user.name + '(' + str(query.from_user.id) + '): ' + query.data)
+        query_list = ast.literal_eval(query.data)
+        session = game_session.find_session(query.message.chat_id)
+        if session.started:
+            db = sqlite3.connect(session.get_db_dir())
     except Exception as e:
         traceback.print_exc()    
-    query_list = ast.literal_eval(query.data)
-    db = sqlite3.connect('database.db')
     try:
         if query_list[0] == 'clear':
             bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
         if query_list[0] == 'start':
-            start_cb(bot, query, query_list, db)
+            start_cb(bot, query, query_list, session)
         if query_list[0] == 'recover_turn':
             recover_turn_cb(bot, query, query_list, db)
         if query_list[0] == 'country_info':
@@ -104,11 +90,11 @@ def cb(bot, update):
         if query_list[0] == 'setup':
             game.setup_cb(bot, query, query_list, db)
         if query_list[0] == 'play':
-            game.play_cb(bot, query, query_list, db)
+            game.play_cb(bot, query, query_list, session)
         if query_list[0] == 'r_r':
             cardfunction.r_r_cb(bot, query, query_list, db)    
         if query_list[0] == 'air':
-            game.air_force_cb(bot, query, query_list, db)    
+            game.air_force_cb(bot, query, query_list, session)    
         if query_list[0] == 'discard':
             game.discard_cb(bot, query, query_list, db)
         if query_list[0] == 'dh':
@@ -120,203 +106,163 @@ def cb(bot, update):
         if query_list[0] == 'dec':
             function.discardew_cb(bot, query, query_list, db)
         if query_list[0] == 'build':
-            battlebuild.build_cb(bot, query, query_list, db)
+            battlebuild.build_cb(bot, query, query_list, session)
         if query_list[0] == 'battle':
-            battlebuild.battle_cb(bot, query, query_list, db)
+            battlebuild.battle_cb(bot, query, query_list, session)
         if query_list[0] == 'recuit':
-            battlebuild.recuit_cb(bot, query, query_list, db)
+            battlebuild.recuit_cb(bot, query, query_list, session)
         if query_list[0] == 'remove':
-            #battlebuild.remove_cb(bot, query, query_list, db)
-            battlebuild.remove_list[query_list[-1]].remove_cb(bot, query, query_list, db)
+            battlebuild.remove_list[query_list[-1]].remove_cb(bot, query, query_list, session)
         if query_list[0] == 'self_remove':
-            #battlebuild.self_remove_cb(bot, query, query_list, db)
-            battlebuild.self_remove_list[query_list[-1]].self_remove_cb(bot, query, query_list, db)
+            battlebuild.self_remove_list[query_list[-1]].self_remove_cb(bot, query, query_list, session)
         if query_list[0] == 'deploy':
-            air.deploy_cb(bot, query, query_list, db)
+            air.deploy_cb(bot, query, query_list, session)
         if query_list[0] == 'marshal':
-            air.marshal_cb(bot, query, query_list, db)
+            air.marshal_cb(bot, query, query_list, session)
         if query_list[0] == 'reposition':
             air.reposition_cb(bot, query, query_list, db)
         if query_list[0] == 'air_attack':
-            air.air_attack_list[query_list[-1]].air_attack_cb(bot, query, query_list, db)
+            air.air_attack_list[query_list[-1]].air_attack_cb(bot, query, query_list, session)
         if query_list[0] == 'status_play':
-            game.status_play_cb(bot, query, query_list, db)
+            game.status_play_cb(bot, query, query_list, session)
         if query_list[0] in ('status_battle','status_build','status_remove','status_recuit','status_deploy','status_before_play','status_after_play','status_draw','status_discard','status_supply','status_victory','status_ew'):
-            status_handler.send_status_card_cb(bot, query, query_list, db)
+            status_handler.send_status_card_cb(bot, query, query_list, session)
         if query_list[0] in ('c20','c28','c30','c31','c33','c35','c36','c37','c48','c66','c100','c102','c144','c147','c149','c152','c175','c178','c202','c203','c205','c206','c209','c211','c219','c227','c271','c272','c273','c287','c298','c322','c325','c326','c328','c331','c332','c334','c335','c336','c337','c341','c342','c351','c365','c366','c369'):
-            eval('cardfunction.' + query_list[0] + '_cb(bot, query, query_list, db)')
+            eval('cardfunction.' + query_list[0] + '_cb(bot, query, query_list, session)')
     except Exception as e:
         traceback.print_exc()
         logger.error(str(e))
-        db = sqlite3.connect('database.db')
-        group_chat_id = db.execute("select chatid from game;").fetchall()
         text = "<b>Exception:</b> " + str(e)
-        bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
-        db.close()
+        bot.send_message(chat_id = session.get_session_id(), text = text, parse_mode=telegram.ParseMode.HTML)
         
 
 player_list = {None:" "}
 player_message_list = {}
 chat_message = None
+
 @run_async
-def message(bot, update):
+def message(update, context):
+    bot = context.bot
     try:
         logger.debug(update.message.from_user.full_name + ": " + update.message.text)
     except Exception as e:
         traceback.print_exc()
-        
-    db = sqlite3.connect('database.db')
-    #start
-    country_list = ['Germany', 'Japan', 'Italy', 'United Kingdom', 'Soviet Union', 'United States']
-    for country in country_list:
-        if update.message.text == country:
-            if db.execute("select status from country where name = :country;", {'country': country}).fetchall()[0][0] == 'none':
-                db.execute("update country set playerid =:id, status = 'filled' where name = :country ;", {'id': update.message.from_user.id, 'country': country})
-                keyboard = []
-                if db.execute("select count(*) from country where status = 'none';").fetchall()[0][0] == 0:
-                    reply_markup = ReplyKeyboardRemove()
-                    bot.send_message(chat_id=update.message.chat_id, text="{} is playing {}".format(update.message.from_user.name, country), reply_markup=reply_markup)
-                    db.commit()
-                    db.close()
-                    try:
-                        game.setup(bot)
-                    except Exception as e:
-                        traceback.print_exc()
-                        db = sqlite3.connect('database.db')
-                        group_chat_id = db.execute("select chatid from game;").fetchall()
-                        text = "<b>Exception:</b> " + str(e)
-                        bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
-                        db.close()
-                else:      
-                    if db.execute("select count(*) from country where status = 'none' and side = 'Axis';").fetchall()[0][0] != 0:
-                        axis = db.execute("select name from country where status = 'none' and side = 'Axis';").fetchall()
-                        keyboard.append([axis[x][0] for x in range(len(axis))])
-                    if db.execute("select count(*) from country where status = 'none' and side = 'Allied';").fetchall()[0][0] != 0:
-                        Allied = db.execute("select name from country where status = 'none' and side = 'Allied';").fetchall()
-                        keyboard.append([Allied[x][0] for x in range(len(Allied))])
-                    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
-                    bot.send_message(chat_id=update.message.chat_id, text="{} is playing {}".format(update.message.from_user.name, country), reply_markup=reply_markup)
-                    db.commit()
-                    db.close()
-        #start2
-        #country_list = db.execute('select name, id from country').fetchall()
-    if update.message.text == "Join!":
-        global chat_message
-        if chat_message == None:
-            chat_message = bot.send_message(chat_id=update.message.chat_id, text="Game Begin, waiting player choose side...").message_id
-        global player_list
-        if len(player_list) < 6:
-            player_list[update.message.from_user.id] = update.message.from_user.name
-            if len(player_list) < 6:
-                bot.send_message(chat_id=update.message.chat_id, text="{} join the game, current player:{}".format(update.message.from_user.name, str(player_count)), reply_markup=reply_markup)
-            else:
-                bot.send_message(chat_id=update.message.chat_id, text="{} join the game, current player:{}, game begin!".format(update.message.from_user.name, str(player_count)), reply_markup=reply_markup)
-                for player in player_list:
-                    keyboard = [[InlineKeyboardButton(country[0], callback_data="['start', {}]".format(country[1]))] for country in country_list]
-                    reply_markup = InlineKeyboardMarkup(keyboard)
-                    player_message_list[update.message.from_user.id] = bot.send_message(chat_id = player, text = "please choose a faction...", reply_markup = reply_markup).message_id
-        else:
-            bot.send_message(chat_id=update.message.chat_id, text="Current game is full!".format(update.message.from_user.name, str(player_count)), reply_markup=reply_markup) 
-        db.commit()
-        db.close()
 
 
 #-------------------------------------Start-----------------------------------------------
 player_name = {}
 id_list = {'Allied':[], 'Axis':[]}
-@run_async
-def start2(bot, update):
-    if update.message.from_user.id in Admin:
-        db = sqlite3.connect('database.db')
-        country = db.execute('select name from country').fetchall()
-        db.execute("update country set status = 'none';")
-        db.execute("update country set status = 'filled' where country in ('fr', 'ch');")
-        db.execute("update game set chatid = :id;", {'id':update.message.chat_id})
-        keyboard = [[country[0][0], country[1][0], country[2][0]], [country[3][0], country[4][0], country[5][0]]]
-        db.commit()
-        db.close()
-        reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
-        update.message.reply_text("New game created, choose your country", reply_markup=reply_markup)
-    else:
-        logger.info('non-admin user: start')
+country_player_id = {'ge':None, 'jp':None, 'it':None, 'uk':None, 'su':None, 'us':None}
+
 
 @run_async
-def start(bot, update):
+def start(update, context):
+    bot = context.bot
     try:
-        global player_name, id_list
-        player_name = {}
-        id_list = {'Allied':[], 'Axis':[]}
         if update.message.from_user.id in Admin:
-            country_list = ['ge', 'jp', 'it', 'uk', 'su', 'us']
-            db = sqlite3.connect('database.db')
-            db.execute("update country set status = 'none';")
-            db.execute("update country set status = 'filled' where id in ('fr', 'ch');")
-            db.execute("update game set chatid = :id;", {'id':update.message.chat_id})
-            keyboard = [[InlineKeyboardButton(function.countryid2name[country], callback_data="['start', '{}']".format(country))] for country in country_list]
-            db.commit()
-            db.close()
+            session = game_session.find_session(update.message.chat_id)
+            if session:
+                text = "New game created, choose your country\n"
+                for country in session.get_player_id_list():
+                    text += "<b>" + function.countryid2name[country] + "</b>: "
+                    if session.get_player_id_list()[country]:
+                        player_name = bot.get_chat_member(group_chat_id,session.get_player_id_list()[country]).user.full_name
+                        text += player_name
+                    text += "\n"
+                empty_country_list = [country for country in session.get_player_id_list() if not session.get_player_id_list()[country]]
+                keyboard = [[InlineKeyboardButton(function.countryid2name[empty_country], callback_data="['start', '{}']".format(empty_country))] for empty_country in empty_country_list]
+            else:
+                new_session = game_session.session_list.append(game_session.session(update.message.chat_id))
+                text = "New game created, choose your country"
+                keyboard = [[InlineKeyboardButton(function.countryid2name[country], callback_data="['start', '{}']".format(country))] for country in function.player_country_list]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            update.message.reply_text("New game created, choose your country", reply_markup=reply_markup)
+            update.message.reply_text(text, reply_markup=reply_markup, parse_mode=telegram.ParseMode.HTML)
         else:
             logger.info('non-admin user: start')
-    except Exception as e:
+    except Exception:
         traceback.print_exc()           
 
 
 @run_async
-def start_cb(bot, query, query_list, db):
-    global id_list
-    if query.from_user.id not in id_list[db.execute("select enemy from country where id = :country;", {'country':query_list[1]}).fetchall()[0][0]]:
-        if db.execute("select status from country where id = :country;", {'country':query_list[1]}).fetchall()[0][0] == 'none':
-            db.execute("update country set playerid =:id, status = 'filled' where id = :country ;", {'id': query.from_user.id, 'country': query_list[1]})
-            if query_list[1] == 'uk':
-                db.execute("update country set playerid =:id, status = 'filled' where id = 'fr' ;", {'id': query.from_user.id})
-            if query_list[1] == 'us':
-                db.execute("update country set playerid =:id, status = 'filled' where id = 'ch' ;", {'id': query.from_user.id})
-            global player_name
-            player_name[query_list[1]] = query.from_user.full_name
-            id_list[function.getside[query_list[1]]].append(query.from_user.id)
-            keyboard = []
-            if db.execute("select count(*) from country where status = 'none';").fetchall()[0][0] == 0:
-                text = "New game created\n"
-                for country in ['ge', 'jp', 'it', 'uk', 'su', 'us']:
-                    text += "<b>" + function.countryid2name[country] + "</b>: "
-                    if db.execute("select status from country where id = :country;", {'country':country}).fetchall()[0][0] != 'none':
-                        text += player_name[country]
-                    text += "\n"
-                bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text=text, parse_mode=telegram.ParseMode.HTML)
-                db.commit()
-                db.close()
-                try:
-                    game.setup(bot)
-                except Exception as e:
-                    traceback.print_exc()
-                    db = sqlite3.connect('database.db')
-                    group_chat_id = db.execute("select chatid from game;").fetchall()
-                    text = "<b>Exception:</b> " + str(e)
-                    bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
-                    db.close()
-            else:
-                country_list = db.execute("select id from country where status = 'none';").fetchall()
-                keyboard = [[InlineKeyboardButton(function.countryid2name[country[0]], callback_data="['start', '{}']".format(country[0]))] for country in country_list]
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                text = "New game created, please choose your country\n"
-                for country in ['ge', 'jp', 'it', 'uk', 'su', 'us']:
-                    text += "<b>" + function.countryid2name[country] + "</b>: "
-                    if db.execute("select status from country where id = :country;", {'country':country}).fetchall()[0][0] != 'none':
-                        text += player_name[country]
-                    text += "\n"
-                bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text=text, reply_markup=reply_markup, parse_mode=telegram.ParseMode.HTML)
-                db.commit()
-                db.close()
-                logger.info(query.from_user.full_name + ' join ' + function.countryid2name[query_list[1]])
-            
+def restart(update, context):
+    bot = context.bot
+    try:
+        if update.message.from_user.id in Admin:
+            session = game_session.find_session(update.message.chat_id)
+            if session:
+                game.game_end(bot, session)
+            new_session = game_session.session_list.append(game_session.session(update.message.chat_id))
+            text = "New game created, choose your country"
+            keyboard = [[InlineKeyboardButton(function.countryid2name[country], callback_data="['start', '{}']".format(country))] for country in function.player_country_list]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            update.message.reply_text(text, reply_markup=reply_markup, parse_mode=telegram.ParseMode.HTML)
+        else:
+            logger.info('non-admin user: restart')
+    except Exception:
+        traceback.print_exc()
+
+        
+@run_async
+def start_cb(bot, query, query_list, session):
+    print('1')
+    if query.from_user.id not in game_session.get_all_active_player():
+        print('2')
+        country = query_list[1]
+        new_player_id = query.from_user.id
+        group_chat_id = query.message.chat_id
+        if new_player_id not in session.get_allied_player_id_list().values() and country in session.get_axis_player_id_list().keys():
+            print('3')
+            if not session.get_axis_player_id_list()[country]:
+                session.set_axis_player_id_list(country, new_player_id)
+                session.set_player_id_list(country, new_player_id)
+        elif new_player_id not in session.get_axis_player_id_list().values() and country in session.get_allied_player_id_list().keys():
+            print('4')
+            if not session.get_allied_player_id_list()[country]:
+                session.set_allied_player_id_list(country, new_player_id)
+                session.set_player_id_list(country, new_player_id)
+        if all(session.get_player_id_list().values()):
+            print('5')
+            text = "New game created\n"
+            for country in ['ge', 'jp', 'it', 'uk', 'su', 'us']:
+                player_name = bot.get_chat_member(group_chat_id,session.get_player_id_list()[country]).user.full_name
+                text += "<b>" + function.countryid2name[country] + "</b>: " + player_name + "\n" 
+            bot.edit_message_text(chat_id=group_chat_id, message_id=query.message.message_id, text=text, parse_mode=telegram.ParseMode.HTML)
+            try:
+                session.set_game_id(game_session.get_new_game_id())
+                session.create_dir()
+                session.create_db()
+                session.started = True
+                game.setup(bot, session)
+            except Exception as e:
+                traceback.print_exc()
+                text = "<b>Exception:</b> " + str(e)
+                bot.send_message(chat_id = group_chat_id, text = text, parse_mode=telegram.ParseMode.HTML)
+        else:
+            print('6')
+            empty_country_list = [country for country in session.get_player_id_list() if not session.get_player_id_list()[country]]
+            keyboard = [[InlineKeyboardButton(function.countryid2name[empty_country], callback_data="['start', '{}']".format(empty_country))] for empty_country in empty_country_list]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            text = "New game created, please choose your country\n"
+            for country in ['ge', 'jp', 'it', 'uk', 'su', 'us']:
+                text += "<b>" + function.countryid2name[country] + "</b>: "
+                if session.get_player_id_list()[country]:
+                    player_name = bot.get_chat_member(group_chat_id,session.get_player_id_list()[country]).user.full_name
+                    text += player_name
+                text += "\n"
+            print('7')
+            bot.edit_message_text(chat_id=group_chat_id, message_id=query.message.message_id, text=text, reply_markup=reply_markup, parse_mode=telegram.ParseMode.HTML)
+            print('8')
+            logger.info(query.from_user.full_name + " join " + function.countryid2name[query_list[2]])
+    else:
+        bot.send_message(chat_id = query.message.chat_id, text = query.from_user.full_name + " already join another game!", parse_mode=telegram.ParseMode.HTML)       
 #-------------------------------------Recovery-----------------------------------------------
 
 @run_async
-def save(bot, update):
+def save(update, context):
+    bot = context.bot
     if update.message.from_user.id in Admin:
-        if backup.save():
+        session = game_session.find_session(update.message.chat_id)
+        if session.save_session():
             update.message.reply_text("Save success")
             logger.info("Save success")
         else:
@@ -327,29 +273,29 @@ def save(bot, update):
 
 
 @run_async
-def recover(bot, update):
-    if update.message.from_user.id in Admin:
-        if backup.load():
-            db = sqlite3.connect('database.db')
-            phase = db.execute("select id, status from country where status != 'inactive';").fetchall()
-            breakpt ="game." + phase[0][1] + "(bot, '{}')".format(phase[0][0])
-            logger.debug(breakpt)
-            try:
+def recover(update, context):
+    try:
+        bot = context.bot
+        if update.message.from_user.id in Admin:
+            session = game_session.find_session(update.message.chat_id)
+            if session.load_session():
+                db = sqlite3.connect(session.get_db_dir())
+                phase = db.execute("select id, status from country where status != 'inactive';").fetchall()
+                breakpt ="game." + phase[0][1] + "(bot, '{}', session)".format(phase[0][0])
+                logger.debug(breakpt)
                 eval(breakpt)
-            except Exception as e:
-                traceback.print_exc()
-                db = sqlite3.connect('database.db')
-                group_chat_id = db.execute("select chatid from game;").fetchall()
-                text = "<b>Exception:</b> " + str(e)
-                bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
-                db.close()
+            else:
+                update.message.reply_text("Load fail")
         else:
-            update.message.reply_text("Load fail")
-    else:
-        logger.info('non-admin user: recover')
-
+            logger.info('non-admin user: recover')
+    except Exception as e:
+        traceback.print_exc()
+        text = "<b>Exception:</b> " + str(e)
+        bot.send_message(chat_id = update.message.chat_id, text = text, parse_mode=telegram.ParseMode.HTML)
+        
 @run_async
-def recover_turn(bot, update):
+def recover_turn(update, context):
+    bot = context.bot
     if update.message.from_user.id in Admin:
         country_list = ['ge', 'jp', 'it', 'uk', 'su', 'us']
         keyboard = [[InlineKeyboardButton(function.countryid2name[country] , callback_data="['recover_turn', '{}']".format(country))] for country in country_list]
@@ -362,29 +308,47 @@ def recover_turn(bot, update):
         logger.info('non-admin user: recover_turn')
 
 def recover_turn_cb(bot, query, query_list, db):
-    bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text="Loading...")
-    if backup.load_turn(query_list[1]):
-        db = sqlite3.connect('database.db')
-        phase = db.execute("select id, status from country where status != 'inactive';").fetchall()
-        breakpt ="game." + phase[0][1] + "(bot, '{}')".format(phase[0][0])
-        logger.debug(breakpt)
-        try:
-            bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
-            eval(breakpt)
-        except Exception as e:
-            traceback.print_exc()
-            db = sqlite3.connect('database.db')
-            group_chat_id = db.execute("select chatid from game;").fetchall()
-            text = "<b>Exception:</b> " + str(e)
-            bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
-            db.close()
-    else:
-        bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text="Load fail")
+    if query.from_user.id in Admin:
+        bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text="Loading...")
+        session = game_session.find_session(query.message.chat_id)
+        if session.load_session_turn(query_list[1]):
+            db = sqlite3.connect(session.get_db_dir())
+            phase = db.execute("select id, status from country where status != 'inactive';").fetchall()
+            breakpt ="game." + phase[0][1] + "(bot, '{}', session)".format(phase[0][0])
+            logger.debug(breakpt)
+            try:
+                bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
+                eval(breakpt)
+            except Exception as e:
+                traceback.print_exc()
+                text = "<b>Exception:</b> " + str(e)
+                bot.send_message(chat_id = query.message.chat_id, text = text, parse_mode=telegram.ParseMode.HTML)
+        else:
+            bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text="Load fail")
     
+#-------------------------------------Draw Map-----------------------------------------------
+
+@run_async
+def draw_map(update, context):
+    bot = context.bot
+    try:
+        session = game_session.find_session(update.message.chat_id)
+        message_id = update.message.reply_text(text = "Drawing map...", parse_mode=telegram.ParseMode.HTML).message_id
+        bot.send_chat_action(chat_id=update.effective_chat.id, action=telegram.ChatAction.TYPING)
+        drawmap.drawmap(sqlite3.connect(session.get_db_dir()))
+        keyboard = [[InlineKeyboardButton("❎", callback_data="['clear']")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        bot.send_photo(chat_id=update.message.chat_id, photo=open(org_dir + '/pic/tmp.jpg', 'rb', ), timeout=1000, reply_markup=reply_markup)
+        bot.delete_message(chat_id=update.effective_chat.id, message_id=message_id)
+    except:
+        traceback.print_exc()
+
+
 #-------------------------------------Country Info-----------------------------------------------
 
 @run_async
-def country_info(bot, update):
+def country_info(update, context):
+    bot = context.bot
     country_list = ['ge', 'jp', 'it', 'uk', 'su', 'us']
     keyboard = [[InlineKeyboardButton(function.countryid2name[country] , callback_data="['country_info', '{}']".format(country))] for country in country_list if country not in ['ch','fr']]
     keyboard.append([InlineKeyboardButton("❎", callback_data="['clear']")])
@@ -393,11 +357,13 @@ def country_info(bot, update):
     update.message.reply_text(text = text, reply_markup=reply_markup, parse_mode=telegram.ParseMode.HTML)
     logger.debug('country_info called')
     
+    
+    
 def country_info_cb(bot, query, query_list, db):
     country_list = ['ge', 'jp', 'it', 'uk', 'su', 'us']
     country = query_list[1]
     deck_count = db.execute("select count(*) from card where location = 'deck' and control =:country;", {'country':country}).fetchall()
-    discard_count = db.execute("select count(*) from card where ((location in ('discardd', 'discardu')) or (location = 'played' and type not in ('Status', 'Response')) or (location = 'used' and type = 'Response')) and control =:country;", {'country':country}).fetchall()
+    discard_count = db.execute("select count(*) from card where ((location in ('discardd', 'discardu')) or (location = 'played' and type not in ('Status', 'Response', 'Bolster')) or (location = 'used' and type in ('Response', 'Bolster'))) and control =:country;", {'country':country}).fetchall()
     hand_count = db.execute("select count(*) from card where location = 'hand' and control =:country;", {'country':country}).fetchall()
     response_list = db.execute("select name from card where location == 'played' and type == 'Response' and control =:country;", {'country':country}).fetchall()
     status_list = db.execute("select name, text from card where location in ('played','turn') and type == 'Status' and control =:country;", {'country':country}).fetchall()
@@ -416,9 +382,11 @@ def country_info_cb(bot, query, query_list, db):
     bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text=text, reply_markup=reply_markup, parse_mode=telegram.ParseMode.HTML)
 
 #-------------------------------------Deck Summary-----------------------------------------------
-def deck_summary(bot, update):
+def deck_summary(update, context):
+    bot = context.bot
+    session = game_session.find_session(update.message.chat_id)
     try:
-        db = sqlite3.connect('database.db')
+        db = sqlite3.connect(session.get_db_dir())
         player_country = db.execute("select id from country where playerid = :playerid;", {'playerid':update.message.from_user.id}).fetchall()
         if len(player_country) != 0:
             text = 'Check your country deck:'
@@ -447,9 +415,11 @@ def deck_summary_cb(bot, query, query_list, db):
         traceback.print_exc()
 
 #-------------------------------------Discard Summary-----------------------------------------------
-def discard_summary(bot, update):
+def discard_summary(update, context):
+    bot = context.bot
+    session = game_session.find_session(update.message.chat_id)
     try:
-        db = sqlite3.connect('database.db')
+        db = sqlite3.connect(session.get_db_dir())
         player_country = db.execute("select id from country where playerid = :playerid;", {'playerid':update.message.from_user.id}).fetchall()
         if len(player_country) != 0:
             text = 'Check your country discard:'
@@ -470,7 +440,7 @@ def discard_summary_cb(bot, query, query_list, db):
             text += "<b>" + card_type[0] + "</b>: "
             if card_type[0] == 'Status':
                 discard_count = db.execute("select count(*) from card where type =:type and control =:country and location in ('discardd', 'discardu');", {'type':card_type[0], 'country':query_list[1]}).fetchall()
-            elif card_type[0] == 'Response':
+            elif card_type[0] in ['Response', 'Bolster']:
                 discard_count = db.execute("select count(*) from card where type =:type and control =:country and location in ('used', 'discardd', 'discardu');", {'type':card_type[0], 'country':query_list[1]}).fetchall()
             else:
                 discard_count = db.execute("select count(*) from card where type =:type and control =:country and location in ('played', 'discardd', 'discardu');", {'type':card_type[0], 'country':query_list[1]}).fetchall()
@@ -483,9 +453,11 @@ def discard_summary_cb(bot, query, query_list, db):
         traceback.print_exc()
 
 #-------------------------------------Hand Summary-----------------------------------------------
-def hand_summary(bot, update):
+def hand_summary(update, context):
+    bot = context.bot
+    session = game_session.find_session(update.message.chat_id)
     try:
-        db = sqlite3.connect('database.db')
+        db = sqlite3.connect(session.get_db_dir())
         player_country = db.execute("select id from country where playerid = :playerid;", {'playerid':update.message.from_user.id}).fetchall()
         if len(player_country) != 0:
             text = 'Check your country hand:'
@@ -512,9 +484,11 @@ def hand_summary_cb(bot, query, query_list, db):
         traceback.print_exc()
 
 #-------------------------------------Draw Calculator-----------------------------------------------
-def draw_calculator(bot, update):
+def draw_calculator(update, context):
+    bot = context.bot
+    session = game_session.find_session(update.message.chat_id)
     try:
-        db = sqlite3.connect('database.db')
+        db = sqlite3.connect(session.get_db_dir())
         player_country = db.execute("select id from country where playerid = :playerid;", {'playerid':update.message.from_user.id}).fetchall()
         if len(player_country) != 0:
             text = 'Calculate your country draw card probability:'
@@ -558,9 +532,11 @@ def draw_calculator_cb(bot, query, query_list, db):
         traceback.print_exc()
 
 #-------------------------------------Victory Point-----------------------------------------------
-def vp(bot, update):
+def vp(update, context):
+    bot = context.bot
+    session = game_session.find_session(update.message.chat_id)
     try:
-        db = sqlite3.connect('database.db')
+        db = sqlite3.connect(session.get_db_dir())
         country_list = ['ge', 'jp', 'it', 'uk', 'su', 'us', 'fr', 'ch']
         text = ''
         for country in country_list:
@@ -612,7 +588,7 @@ def vp_cb(bot, query, query_list, db):
 
         
 #--------------------------------------handler-----------------------------------------------
-message_handler = MessageHandler(Filters.text, message, message_updates = True)
+message_handler = MessageHandler(Filters.text & (~Filters.command), message)
 dispatcher.add_handler(message_handler)
 dispatcher.add_handler(CallbackQueryHandler(cb))
 draw_handler = CommandHandler('draw', draw_map)
@@ -620,6 +596,8 @@ dispatcher.add_handler(draw_handler)
 try_handler = CommandHandler('try', trial)
 dispatcher.add_handler(try_handler)   
 start_handler = CommandHandler('start', start)
+dispatcher.add_handler(start_handler)
+start_handler = CommandHandler('restart', restart)
 dispatcher.add_handler(start_handler)
 recover_handler = CommandHandler('recover', recover)
 dispatcher.add_handler(recover_handler)

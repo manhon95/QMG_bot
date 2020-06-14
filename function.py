@@ -10,6 +10,11 @@ terrain2type = {'land':'army', 'sea':'navy'}
 countryid2name = {'ge':'Germany', 'jp':'Japan', 'it':'Italy', 'uk':'United Kingdom', 'su':'Soviet Union', 'us':'United States', 'fr':'France', 'ch':'China'}
 getside = {'ge':'Axis', 'jp':'Axis', 'it':'Axis', 'uk':'Allied', 'su':'Allied', 'us':'Allied', 'fr':'Allied', 'ch':'Allied'}
 piece_type_name = {'army':'Army', 'navy':'Navy', 'air':'Air Force'}
+player_country_list = ['ge', 'jp', 'it', 'uk', 'su', 'us']
+country_list = ['ge', 'jp', 'it', 'uk', 'su', 'us', 'fr', 'ch']
+axis_list = ['ge', 'jp', 'it']
+allied_list = ['uk', 'su', 'us', 'fr', 'ch']
+
     #------------------------------------------Supply------------------------------------------
 def updatesupply(db):
     print('update supply')
@@ -83,7 +88,7 @@ def shufflediscard(bot, country, db):
     group_chat_id = db.execute("select chatid from game;").fetchall()
     text = "<b>" + countryid2name[country] + "</b> shuffle his deck"
     bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
-    discard = db.execute("select cardid from card where ((location in ('discardd', 'discardu')) or (location = 'played' and type not in ('Status', 'Response')) or (location = 'used' and type = 'Response')) and control =:country;", {'country':country}).fetchall()
+    discard = db.execute("select cardid from card where ((location in ('discardd', 'discardu')) or (location = 'played' and type not in ('Status', 'Response', 'Bolster')) or (location = 'used' and type in ('Response', 'Bolster'))) and control =:country;", {'country':country}).fetchall()
     ransq = [x for x in range(1, len(cardid)+1)]
     random.shuffle(ransq)
     for i in range (len(discard)):
@@ -377,22 +382,25 @@ def discardew_cb(bot, query, query_list, db):
         db.close()
         
     #------------------------------------------Discard------------------------------------------
-def ewdiscard(bot, cardid, active_country, passive_country, number, db):    #ew discard that call respone
+def ewdiscard(bot, cardid, active_country, passive_country, number, session):    #ew discard that call respone
+    db = sqlite3.connect(session.get_db_dir())
     group_chat_id = db.execute("select chatid from game;").fetchall()
-    extra_number = status_handler.status_ew_handler(bot, cardid, active_country, passive_country, db) 
-    number += extra_number
     lock_id = thread_lock.add_lock()
-    status_handler.send_status_card(bot, active_country, 'Economic Warfare', lock_id, db, passive_country_id = passive_country, card_id = cardid) 
-    import cardfunction
-    if (cardfunction.c171_used):
-        cardfunction.c171_used = False
-        text = "<b>" + card_name[0][0] + "</b> ignored"
-        bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
-    else:
-        card_name = db.execute("select name from card where cardid = :cardid;", {'cardid':cardid}).fetchall()
-        text = "<b>" + countryid2name[passive_country]  + "</b> is attacked by " + card_name[0][0]
-        bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
-        discarddeck(bot, passive_country, number, db)
+    status_handler.send_status_card(bot, active_country, 'Economic Warfare', lock_id, session, passive_country_id = passive_country, card_id = cardid) 
+    extra_number = status_handler.status_ew_handler(bot, cardid, active_country, passive_country, session) 
+    number += extra_number
+    if number > 0:
+        import cardfunction
+        if cardfunction.c171_used or cardfunction.c179_used:
+            cardfunction.c171_used = False
+            cardfunction.c179_used = False
+            text = "<b>" + card_name[0][0] + "</b> ignored"
+            bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
+        else:
+            card_name = db.execute("select name from card where cardid = :cardid;", {'cardid':cardid}).fetchall()
+            text = "<b>" + countryid2name[passive_country]  + "</b> is attacked by " + card_name[0][0]
+            bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
+            discarddeck(bot, passive_country, number, db)
         
 def discarddeck(bot, country, number, db):
     cardcount = db.execute("select count(*) from card where location = 'deck' and control =:country;", {'country':country}).fetchall()
@@ -592,9 +600,9 @@ def within(side, space_list, number, db):
     for i in range(number):
         questionmarks = '?' * len(space_list)
         if side == 'Allied':
-            adjacency = db.execute("select spaceid from space where adjacency in ({}) and (straits not in (select location from piece where control in (select id from country where side = 'Axis') and location != 'none') or straits = 'none') and (status not in (select cardid from card where location = 'used' and cardid = 165) or status = 'none');".format(','.join(questionmarks)), (space_list)).fetchall()
+            adjacency = db.execute("select spaceid from space where adjacency in ({}) and (straits not in (select location from piece where control in (select id from country where side = 'Axis') and location != 'none') or straits = 'none') and (status not in (select cardid from card where location = 'used') or status = 'none');".format(','.join(questionmarks)), (space_list)).fetchall()
         else:
-            adjacency = db.execute("select spaceid from space where adjacency in ({}) and (straits in (select location from piece where control in (select id from country where side = 'Axis') and location != 'none') or straits = 'none') and (status in (select cardid from card where location = 'used') or status = 'none');".format(','.join(questionmarks)), (space_list)).fetchall()
+            adjacency = db.execute("select spaceid from space where adjacency in ({}) and (straits in (select location from piece where control in (select id from country where side = 'Axis') and location != 'none') or straits = 'none') and (status in (select cardid from card where location = 'used') or status in ('none', '165'));".format(','.join(questionmarks)), (space_list)).fetchall()
         for j in adjacency:
             space_list.append(j[0])
     space_list = list(set(space_list))

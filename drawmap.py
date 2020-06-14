@@ -131,13 +131,6 @@ def drawmap(db):
             for piece in piece_list:
                 mapimg.paste(air_force[piece[0]], (posx, posy), air_force[piece[0]])
                 posy += 20
-    '''for air in air_list:
-        piece_list = db.execute("select control from piece where type = 'air' and location = :space;", {'space':air[0]}).fetchall()
-        posx = db.execute("select distinct posx from space where spaceid = :space;", {'space':air[0]}).fetchall()[0][0]-30
-        posy = db.execute("select distinct posy from space where spaceid = :space;", {'space':air[0]}).fetchall()[0][0]-24
-        for piece in piece_list:
-            mapimg.paste(air_force[piece[0]], (posx, posy), air_force[piece[0]])
-            posy += 20'''
 
 
 
@@ -163,4 +156,3 @@ def drawmap(db):
     #mapimg.save("tmp.png")
     mapimg.save("tmp.jpg", format="JPEG")
     os.chdir(org_dir)
-    #os.system("xdg-open tmp.png")
