@@ -38,10 +38,10 @@ def battle_cb(bot, query, query_list, session):
     if query_list[2] == 'confirm':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
         battle(bot, query_list[1], query_list[3], query_list[4], query_list[5], session)
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     elif query_list[2] == 'pass':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     else:  
         if query_list[2] == 'back':
             info = battle_info(bot, query_list[1] , session.space_list_buffer, query_list[3], query_list[-1], session)
@@ -85,7 +85,7 @@ def battle(bot, active_country, piece, space, card_id, session):
             text = country_name[0][1] + " piece in " + space_name[0][0] + " is not removed"
     bot.send_message(chat_id = group_chat[0][0], text = text)        
     function.updatecontrol(bot, db)
-    lock_id = thread_lock.add_lock()
+    lock_id = session.add_lock()
     status_handler.send_status_card(bot, active_country, 'Battle', lock_id, session, passive_country_id = passive_country[0][0], piece_id = piece, space_id = space, card_id = card_id)
     import air
     air.check_reposition(bot, session)
@@ -132,11 +132,11 @@ class remove_obj():
             bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
             self.piece_id = query_list[2]
             remove(bot, self.country, self.piece_id, self.space_id, self.card_id, session)
-            thread_lock.release_lock(self.lock_id)
+            session.release_lock(self.lock_id)
             remove_list.pop(self.remove_id)
         elif query_list[1] == 'pass':
             bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
-            thread_lock.release_lock(self.lock_id)
+            session.release_lock(self.lock_id)
             remove_list.pop(self.remove_id)
         else:  
             if query_list[1] == 'back':
@@ -185,7 +185,7 @@ def remove(bot, active_country, piece, space, card_id, session):
             text = country_name[0][0] + " piece in " + space_name[0][0] + " is not removed"
     bot.send_message(chat_id = group_chat[0][0], text = text)
     function.updatecontrol(bot, db)
-    lock_id = thread_lock.add_lock()
+    lock_id = session.add_lock()
     status_handler.send_status_card(bot, active_country, 'Remove', lock_id, session, piece_id = piece, space_id = space, card_id = card_id)
     import air
     air.check_reposition(bot, session)
@@ -231,11 +231,11 @@ class self_remove():
             bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
             self.piece_id = query_list[2]
             remove(bot, self.country, self.piece_id, self.space_id, self.card_id, session)
-            thread_lock.release_lock(self.lock_id)
+            session.release_lock(self.lock_id)
             self_remove_list.pop(self.self_remove_id)
         elif query_list[1] == 'pass':
             bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
-            thread_lock.release_lock(self.lock_id)
+            session.release_lock(self.lock_id)
             self_remove_list.pop(self.self_remove_id)
         else:  
             if query_list[1] == 'back':
@@ -300,11 +300,11 @@ class move():
             bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
             self.piece_id = query_list[3]
             move(bot, self.country, self.piece_id, self.space_id, session)
-            thread_lock.release_lock(self.lock_id)
+            session.release_lock(self.lock_id)
             move_list.pop(self.move_id)
         elif query_list[1] == 'pass':
             bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
-            thread_lock.release_lock(self.lock_id)
+            session.release_lock(self.lock_id)
             move_list.pop(self.move_id)
         else:  
             if query_list[1] == 'back':
@@ -374,10 +374,10 @@ def build_cb(bot, query, query_list, session):
     if query_list[2] == 'confirm':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
         build(bot,query_list[1], query_list[3], query_list[4], session)
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     elif query_list[2] == 'pass':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     else:
         if query_list[2] == 'back':
             info = build_info(bot, query_list[1] , session.space_list_buffer, query_list[3], query_list[-1], session)
@@ -408,7 +408,7 @@ def build(bot, active_country, space, card_id, session):
         bot.send_message(chat_id = group_chat[0][0], text = text)
         function.updatecontrol(bot, db)
         function.updatesupply(db)
-        lock_id = thread_lock.add_lock()
+        lock_id = session.add_lock()
         status_handler.send_status_card(bot, active_country, 'Build', lock_id, session, piece_id = piece[0][0], space_id = space, card_id = card_id)
         import air
         air.check_reposition(bot, session)
@@ -443,10 +443,10 @@ def recuit_cb(bot, query, query_list, session):
     if query_list[2] == 'confirm':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
         recuit(bot,query_list[1], query_list[3], query_list[4], session)
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     elif query_list[2] == 'pass':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     else:
         if query_list[2] == 'back':
             info = recuit_info(bot, query_list[1] , session.space_list_buffer, query_list[3], query_list[-1], session)
@@ -477,7 +477,7 @@ def recuit(bot, active_country, space, card_id, session):
         bot.send_message(chat_id = group_chat[0][0], text = text)
         function.updatecontrol(bot, db)
         function.updatesupply(db)
-        lock_id = thread_lock.add_lock()
+        lock_id = session.add_lock()
         status_handler.send_status_card(bot, active_country, 'Recruit', lock_id, session, piece_id = piece[0][0], space_id = space, card_id = card_id)
         import air
         air.check_reposition(bot, session)
@@ -489,13 +489,13 @@ def recuit(bot, active_country, space, card_id, session):
 def over_build_handler(bot, active_country, space_type, session):
     db = sqlite3.connect(session.get_db_dir())
     if db.execute("select count(*) from piece where location = 'none' and control = :country and type = :piece_type;", {'country':active_country, 'piece_type':function.terrain2type[space_type]}).fetchall()[0][0] == 0:
-        lock_id = thread_lock.add_lock()
+        lock_id = session.add_lock()
         space_list = function.control_space_list(active_country, db, space_type = space_type)
         self_remove_list.append(self_remove(active_country, space_list, None, lock_id, function.terrain2type[space_type]))
         self_remove_id = len(self_remove_list)-1
         info = self_remove_list[self_remove_id].self_remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
-        thread_lock.thread_lock(lock_id)
+        session.thread_lock(lock_id)
     return (db.execute("select count(*) from piece where location = 'none' and control = :country and type = :piece_type;", {'country':active_country, 'piece_type':function.terrain2type[space_type]}).fetchall()[0][0] == 0)
 
     #------------------------------------------Restore------------------------------------------

@@ -23,7 +23,7 @@ from telegram.ext.dispatcher import run_async
 
 org_dir = os.getcwd()
 
-updater = Updater(token='731906195:AAEjKS1Qv_vYn6whd1Niq6z6UPkwkemfvy4', workers=32, use_context=True)
+updater = Updater(token='731906195:AAEjKS1Qv_vYn6whd1Niq6z6UPkwkemfvy4', workers=128, use_context=True)
 dispatcher = updater.dispatcher
 Admin = [678036043]
 logger = logging.getLogger('QMG_main')
@@ -166,7 +166,7 @@ def start(update, context):
                 for country in session.get_player_id_list():
                     text += "<b>" + function.countryid2name[country] + "</b>: "
                     if session.get_player_id_list()[country]:
-                        player_name = bot.get_chat_member(group_chat_id,session.get_player_id_list()[country]).user.full_name
+                        player_name = bot.get_chat_member(update.message.chat_id,session.get_player_id_list()[country]).user.full_name
                         text += player_name
                     text += "\n"
                 empty_country_list = [country for country in session.get_player_id_list() if not session.get_player_id_list()[country]]
@@ -232,6 +232,7 @@ def start_cb(bot, query, query_list, session):
                 session.create_dir()
                 session.create_db()
                 session.started = True
+                session.turn = 1
                 game.setup(bot, session)
             except Exception as e:
                 traceback.print_exc()
@@ -295,7 +296,6 @@ def recover(update, context):
         
 @run_async
 def recover_turn(update, context):
-    bot = context.bot
     if update.message.from_user.id in Admin:
         country_list = ['ge', 'jp', 'it', 'uk', 'su', 'us']
         keyboard = [[InlineKeyboardButton(function.countryid2name[country] , callback_data="['recover_turn', '{}']".format(country))] for country in country_list]
@@ -335,7 +335,7 @@ def draw_map(update, context):
         session = game_session.find_session(update.message.chat_id)
         message_id = update.message.reply_text(text = "Drawing map...", parse_mode=telegram.ParseMode.HTML).message_id
         bot.send_chat_action(chat_id=update.effective_chat.id, action=telegram.ChatAction.TYPING)
-        drawmap.drawmap(sqlite3.connect(session.get_db_dir()))
+        session.drawmap(sqlite3.connect(session.get_db_dir()))
         keyboard = [[InlineKeyboardButton("❎", callback_data="['clear']")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_photo(chat_id=update.message.chat_id, photo=open(org_dir + '/pic/tmp.jpg', 'rb', ), timeout=1000, reply_markup=reply_markup)
@@ -348,7 +348,6 @@ def draw_map(update, context):
 
 @run_async
 def country_info(update, context):
-    bot = context.bot
     country_list = ['ge', 'jp', 'it', 'uk', 'su', 'us']
     keyboard = [[InlineKeyboardButton(function.countryid2name[country] , callback_data="['country_info', '{}']".format(country))] for country in country_list if country not in ['ch','fr']]
     keyboard.append([InlineKeyboardButton("❎", callback_data="['clear']")])

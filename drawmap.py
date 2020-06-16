@@ -4,35 +4,34 @@ import os
 import sqlite3
 
 
-def drawmap(db):
+def drawmap(db, dst_dir):
     org_dir = os.getcwd()
-    _dir = org_dir + '/pic'
-    os.chdir(_dir)
-    #os.chdir('/home/pi/Desktop/Quartermaster General - exp/pic')
-    mapimg = Image.open('map.png')
+    pic_dir = org_dir + '/pic/'
+    mapimg = Image.open(pic_dir + 'map.png')
     #Uk victory
-    uksupplyimg = Image.open('uk_supply.png')
+    uksupplyimg = Image.open(pic_dir + 'uk_supply.png')
     if db.execute("select location from card where cardid = 225;").fetchall()[0][0] == "played":
         mapimg.paste(uksupplyimg, (174-14, 130-15), uksupplyimg)
     if db.execute("select location from card where cardid = 226;").fetchall()[0][0] == "played":
         mapimg.paste(uksupplyimg, (649-14, 185-15), uksupplyimg)
-        
-    frhomeimg = Image.open('fr_home.png')
+    #Fr home/victory    
+    frhomeimg = Image.open(pic_dir + 'fr_home.png')
     if (db.execute("select location from card where cardid = 222;").fetchall()[0][0] == "played") and (db.execute("select control from space where spaceid = 12;").fetchall()[0][0] == "Axis"):
         mapimg.paste(frhomeimg, (470-14, 172-15), frhomeimg)
     else:
         mapimg.paste(frhomeimg, (503-14, 264-15), frhomeimg)
-    if db.execute("select location from card where cardid = 228;").fetchall()[0][0] == "played":
-        frsupplyimg = Image.open('fr_supply.png')
-        mapimg.paste(frsupplyimg, (576-14, 491-15), frsupplyimg)
 
+    if db.execute("select location from card where cardid = 228;").fetchall()[0][0] == "played":
+        frsupplyimg = Image.open(pic_dir + 'fr_supply.png')
+        mapimg.paste(frsupplyimg, (576-14, 491-15), frsupplyimg)
+    #Su home
     if db.execute("select location from card where cardid = 277;").fetchall()[0][0] == "played":
-        suhomeimg = Image.open('su_home.png')
-        sunohomeimg = Image.open('su_nohome.png')
+        suhomeimg = Image.open(pic_dir + 'su_home.png')
+        sunohomeimg = Image.open(pic_dir + 'su_nohome.png')
         mapimg.paste(suhomeimg, (1002-14, 82-15), suhomeimg)
         mapimg.paste(sunohomeimg, (803-14, 170-15), sunohomeimg)
-        
-    chhomeimg = Image.open('ch_home.png')
+    #Ch home
+    chhomeimg = Image.open(pic_dir + 'ch_home.png')
     if db.execute("select location from card where cardid = 345;").fetchall()[0][0] == "played":
         mapimg.paste(chhomeimg, (1009-14, 311-15), chhomeimg)
     else:
@@ -44,38 +43,38 @@ def drawmap(db):
         usvictoryimg = Image.open('us_victory.png')
         usvictoryimg = usvictoryimg.resize((45, 39), Image.ANTIALIAS)
         mapimg.paste(usvictoryimg, (977, 290), usvictoryimg)'''
-    geaimg = Image.open('ge_army.png')
-    jpaimg = Image.open('jp_army.png')
-    itaimg = Image.open('it_army.png')
-    ukaimg = Image.open('uk_army.png')
-    suaimg = Image.open('su_army.png')
-    usaimg = Image.open('us_army.png')
-    fraimg = Image.open('fr_army.png')
-    chaimg = Image.open('ch_army.png')
+    geaimg = Image.open(pic_dir + 'ge_army.png')
+    jpaimg = Image.open(pic_dir + 'jp_army.png')
+    itaimg = Image.open(pic_dir + 'it_army.png')
+    ukaimg = Image.open(pic_dir + 'uk_army.png')
+    suaimg = Image.open(pic_dir + 'su_army.png')
+    usaimg = Image.open(pic_dir + 'us_army.png')
+    fraimg = Image.open(pic_dir + 'fr_army.png')
+    chaimg = Image.open(pic_dir + 'ch_army.png')
     ukaimg = ukaimg.transpose(Image.FLIP_LEFT_RIGHT)
     suaimg = suaimg.transpose(Image.FLIP_LEFT_RIGHT)
     usaimg = usaimg.transpose(Image.FLIP_LEFT_RIGHT)
     fraimg = fraimg.transpose(Image.FLIP_LEFT_RIGHT)
     chaimg = chaimg.transpose(Image.FLIP_LEFT_RIGHT)
-    genimg = Image.open('ge_navy.png')
-    jpnimg = Image.open('jp_navy.png')
-    itnimg = Image.open('it_navy.png')
-    uknimg = Image.open('uk_navy.png')
-    sunimg = Image.open('su_navy.png')
-    usnimg = Image.open('us_navy.png')
-    frnimg = Image.open('fr_navy.png')
+    genimg = Image.open(pic_dir + 'ge_navy.png')
+    jpnimg = Image.open(pic_dir + 'jp_navy.png')
+    itnimg = Image.open(pic_dir + 'it_navy.png')
+    uknimg = Image.open(pic_dir + 'uk_navy.png')
+    sunimg = Image.open(pic_dir + 'su_navy.png')
+    usnimg = Image.open(pic_dir + 'us_navy.png')
+    frnimg = Image.open(pic_dir + 'fr_navy.png')
     uknimg = uknimg.transpose(Image.FLIP_LEFT_RIGHT)
     sunimg = sunimg.transpose(Image.FLIP_LEFT_RIGHT)
     usnimg = usnimg.transpose(Image.FLIP_LEFT_RIGHT)
     frnimg = frnimg.transpose(Image.FLIP_LEFT_RIGHT)
-    gefimg = Image.open('ge_air.png')
-    jpfimg = Image.open('jp_air.png')
-    itfimg = Image.open('it_air.png')
-    ukfimg = Image.open('uk_air.png')
-    sufimg = Image.open('su_air.png')
-    usfimg = Image.open('us_air.png')
-    frfimg = Image.open('fr_air.png')
-    chfimg = Image.open('ch_air.png')
+    gefimg = Image.open(pic_dir + 'ge_air.png')
+    jpfimg = Image.open(pic_dir + 'jp_air.png')
+    itfimg = Image.open(pic_dir + 'it_air.png')
+    ukfimg = Image.open(pic_dir + 'uk_air.png')
+    sufimg = Image.open(pic_dir + 'su_air.png')
+    usfimg = Image.open(pic_dir + 'us_air.png')
+    frfimg = Image.open(pic_dir + 'fr_air.png')
+    chfimg = Image.open(pic_dir + 'ch_air.png')
     gefimg = gefimg.rotate(-45)
     jpfimg = jpfimg.rotate(-45)
     itfimg = itfimg.rotate(-45)
@@ -150,9 +149,5 @@ def drawmap(db):
             pos['y'] -= 15
         pos['x'] += 30
         pos['y'] = 780
-
-
-     
-    #mapimg.save("tmp.png")
-    mapimg.save("tmp.jpg", format="JPEG")
-    os.chdir(org_dir)
+    
+    mapimg.save(dst_dir + "/tmp.jpg", format="JPEG")

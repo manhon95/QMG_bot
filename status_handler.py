@@ -56,7 +56,7 @@ friendly_country_list = {'ge':['ge', 'jp', 'it'],
     
 def send_status_card(bot, active_country_id, type_, lock_id, session, passive_country_id = None, card_id = None, space_id = None, piece_id = None):
     db = sqlite3.connect(session.get_db_dir())
-    drawmap.drawmap(db)
+    session.draw_map()
     session.handler_list.append(handler(type_, active_country_id, lock_id, passive_country_id, card_id, space_id, piece_id))
     print("status_handler_id: " + str(len(session.handler_list)-1))
     handler_id = len(session.handler_list)-1
@@ -92,11 +92,11 @@ def send_status_card(bot, active_country_id, type_, lock_id, session, passive_co
         if pass_:
             air.check_reposition(bot, session)
             session.handler_list.pop(handler_id)
-            thread_lock.release_lock(lock_id)
+            session.release_lock(lock_id)
         else:
-            thread_lock.thread_lock(lock_id)
+            session.thread_lock(lock_id)
     else:
-        thread_lock.thread_lock(lock_id)
+        session.thread_lock(lock_id)
 
 def send_status_card_cb(bot, query, query_list, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -125,7 +125,7 @@ def send_status_card_cb(bot, query, query_list, session):
                 session.handler_list[handler_id].message_id[country] = None
         if session.handler_list[handler_id].one_side_pass:
             session.handler_list.pop(handler_id)
-            thread_lock.release_lock(lock_id)
+            session.release_lock(lock_id)
             return
         session.handler_list[handler_id].one_side_pass = True
         session.handler_list[handler_id].first = False
@@ -151,13 +151,13 @@ def send_status_card_cb(bot, query, query_list, session):
         session.handler_list[handler_id].one_side_pass = False
         #card execute
         if query_list[-1] == 'air_a':
-            air_a_lock_id = thread_lock.add_lock()
+            air_a_lock_id = session.add_lock()
             air.air_attack_list.append(air.air_attack(query_list[2], air_a_lock_id, session))
             print("air_attack_id: " + str(len(air.air_attack_list)-1))
             air_attack_id = len(air.air_attack_list)-1
             info = air.air_attack_list[air_attack_id].air_attack_info(session)
             bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
-            thread_lock.thread_lock(air_a_lock_id)
+            session.thread_lock(air_a_lock_id)
         elif query_list[-1] == 'air_d':
             air.air_defense(bot, query_list[2], session)
         else:
@@ -205,7 +205,7 @@ def send_status_card_cb(bot, query, query_list, session):
             air.check_reposition(bot, session)
             if session.handler_list[handler_id].one_side_pass:
                 session.handler_list.pop(handler_id)
-                thread_lock.release_lock(lock_id)
+                session.release_lock(lock_id)
                 return
             session.handler_list[handler_id].one_side_pass = True
             pass_ = True
@@ -230,7 +230,7 @@ def send_status_card_cb(bot, query, query_list, session):
             if pass_:
                 air.check_reposition(bot, session)
                 session.handler_list.pop(handler_id)
-                thread_lock.release_lock(lock_id)
+                session.release_lock(lock_id)
 
     #------------------------------------------Status Handler Info------------------------------------------
         #--------------------------------------------Battle---------------------------------------------

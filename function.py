@@ -161,7 +161,7 @@ def discardhand(bot, country, number, db):
     else:
         text = "<b>" + countryid2name[country] + "</b> discarded " + str(number) + " card(s) from his hand"
         bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
-        lock_id = thread_lock.add_lock()
+        lock_id = session.add_lock()
         chat_id = db.execute("select playerid from country where id = :country;", {'country':country}).fetchall()
         keyboard = [[InlineKeyboardButton(hand[1], callback_data="['dh', '{}', {}, {}, {}]".format(country, hand[0], number, lock_id))]for hand in hand_list]
         text = "Discard " + str(number) + " card(s):\n\n"
@@ -169,7 +169,7 @@ def discardhand(bot, country, number, db):
                 text += "<b>" + card[1] + "</b> - " + card[2] + " - " + card[3] + "\n"
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_message(chat_id = chat_id[0][0], text = text, reply_markup = reply_markup, parse_mode=telegram.ParseMode.HTML)
-        thread_lock.thread_lock(lock_id)
+        session.thread_lock(lock_id)
     
 def discardhand_cb(bot, query, query_list, db):
     if query_list[2] == 'confirm':
@@ -180,7 +180,7 @@ def discardhand_cb(bot, query, query_list, db):
             text += str(card[0]) + '\n'
         bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text=text, parse_mode=telegram.ParseMode.HTML)
         db.commit()
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     else:
         if query_list[2] == 'back':
             db.execute("update card set location = 'hand' where location = 'selected' and control =:country;", {'country':query_list[1]})
@@ -223,7 +223,7 @@ def discardhand_no_deck(bot, country, number, db):
     else:
         text = "<b>" + countryid2name[country] + "</b> discarded " + str(number) + " card(s) from his hand"
         bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
-        lock_id = thread_lock.add_lock()
+        lock_id = session.add_lock()
         chat_id = db.execute("select playerid from country where id = :country;", {'country':country}).fetchall()
         keyboard = [[InlineKeyboardButton(hand[1], callback_data="['dh_nd', '{}', {}, {}, {}]".format(country, hand[0], number, lock_id))]for hand in hand_list]
         text = "Discard " + str(number) + " card(s):\n\n"
@@ -231,7 +231,7 @@ def discardhand_no_deck(bot, country, number, db):
                 text += "<b>" + card[1] + "</b> - " + card[2] + " - " + card[3] + "\n"
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_message(chat_id = chat_id[0][0], text = text, reply_markup = reply_markup, parse_mode=telegram.ParseMode.HTML)
-        thread_lock.thread_lock(lock_id)
+        session.thread_lock(lock_id)
     
 def discardhand_no_deck_cb(bot, query, query_list, db):
     if query_list[2] == 'confirm':
@@ -242,7 +242,7 @@ def discardhand_no_deck_cb(bot, query, query_list, db):
             text += str(card[0]) + '\n'
         bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text=text, parse_mode=telegram.ParseMode.HTML)
         db.commit()
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     else:
         if query_list[2] == 'back':
             db.execute("update card set location = 'hand' where location = 'selected' and control =:country;", {'country':query_list[1]})
@@ -278,7 +278,7 @@ def discardresponse(bot, country, number, db):
     if len(response_list) != 0:
         text = "<b>" + countryid2name[country] + "</b> discarded " + str(number) + " Response card(s) from his hand"
         bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
-        lock_id = thread_lock.add_lock()
+        lock_id = session.add_lock()
         chat_id = db.execute("select playerid from country where id = :country;", {'country':country}).fetchall()
         keyboard = [[InlineKeyboardButton(response[1], callback_data="['dr', '{}', {}, {}, {}]".format(country, response[0], number, lock_id))]for response in response_list]
         text = "Discard " + str(number) + " Response card(s):\n\n"
@@ -286,7 +286,7 @@ def discardresponse(bot, country, number, db):
                 text += "<b>" + card[1] + "</b> - " + card[2] + " - " + card[3] + "\n"
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_message(chat_id = chat_id[0][0], text = text, reply_markup = reply_markup, parse_mode=telegram.ParseMode.HTML)
-        thread_lock.thread_lock(lock_id)
+        session.thread_lock(lock_id)
     
 def discardresponse_cb(bot, query, query_list, db):
     if query_list[2] == 'confirm':
@@ -297,7 +297,7 @@ def discardresponse_cb(bot, query, query_list, db):
             text += str(card[0]) + '\n'
         bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text=text, parse_mode=telegram.ParseMode.HTML)
         db.commit()
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     else:
         if query_list[2] == 'back':
             db.execute("update card set location = 'hand' where location = 'selected' and control =:country;", {'country':query_list[1]})
@@ -333,7 +333,7 @@ def discardew(bot, country, number, db):
     if len(response_list) != 0:
         text = "<b>" + countryid2name[country] + "</b> discarded " + str(number) + " Economic Warfare card(s) from his hand"
         bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
-        lock_id = thread_lock.add_lock()
+        lock_id = session.add_lock()
         chat_id = db.execute("select playerid from country where id = :country;", {'country':country}).fetchall()
         keyboard = [[InlineKeyboardButton(response[1], callback_data="['dec', '{}', {}, {}, {}]".format(country, response[0], number, lock_id))]for response in response_list]
         text = "Discard " + str(number) + " Economic Warfare card(s):\n\n"
@@ -341,7 +341,7 @@ def discardew(bot, country, number, db):
                 text += "<b>" + card[1] + "</b> - " + card[2] + " - " + card[3] + "\n"
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_message(chat_id = chat_id[0][0], text = text, reply_markup = reply_markup, parse_mode=telegram.ParseMode.HTML)
-        thread_lock.thread_lock(lock_id)
+        session.thread_lock(lock_id)
     
 def discardew_cb(bot, query, query_list, db):
     if query_list[2] == 'confirm':
@@ -352,7 +352,7 @@ def discardew_cb(bot, query, query_list, db):
             text += str(card[0]) + '\n'
         bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text=text, parse_mode=telegram.ParseMode.HTML)
         db.commit()
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     else:
         if query_list[2] == 'back':
             db.execute("update card set location = 'hand' where location = 'selected' and control =:country;", {'country':query_list[1]})
@@ -385,7 +385,7 @@ def discardew_cb(bot, query, query_list, db):
 def ewdiscard(bot, cardid, active_country, passive_country, number, session):    #ew discard that call respone
     db = sqlite3.connect(session.get_db_dir())
     group_chat_id = db.execute("select chatid from game;").fetchall()
-    lock_id = thread_lock.add_lock()
+    lock_id = session.add_lock()
     status_handler.send_status_card(bot, active_country, 'Economic Warfare', lock_id, session, passive_country_id = passive_country, card_id = cardid) 
     extra_number = status_handler.status_ew_handler(bot, cardid, active_country, passive_country, session) 
     number += extra_number

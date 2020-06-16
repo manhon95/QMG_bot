@@ -2,6 +2,8 @@ import os
 import shutil
 import traceback
 import sqlite3
+import drawmap
+import threading
 
 class session:
     def __init__(self, group_chat_id):
@@ -14,7 +16,7 @@ class session:
         self._allied_player_id_list = {'uk':None, 'su':None, 'us':None}
         self._player_id_list = {'ge':None, 'jp':None, 'it':None, 'uk':None, 'su':None, 'us':None}
         self.started = False
-
+        self.turn = None
         
         self._dir = None
         self._db_dir = None
@@ -22,7 +24,8 @@ class session:
         self.space_list_buffer = []
         self.space_buffer = None
         self.handler_list = []
-    
+        self.lock = []
+        
     def get_session_id(self):
         return self._session_id
     
@@ -97,6 +100,8 @@ class session:
         for country in self._player_id_list:
             new_player_id = game_db.execute("select {} from game_session where game_id = :game_id;".format(country+'_player_id'), {'game_id':self._game_id}).fetchall()[0][0]
             self.set_player_id_list(country, new_player_id)
+        db = sqlite3.connect(self._db_dir)
+        self.turn = db.execute("select turn from game;").fetchall()[0][0]
         print('Loaded Game-' + str(self._game_id))
 
         
@@ -124,6 +129,16 @@ class session:
             os.chdir(org_dir)
             return True
 
+    def save_session_turn2(self, country):
+        org = self._dir + '/database.db'
+        dst = self._dir + '/' + str(self.turn) + '/database_turn_' + country + '.db'
+        try:
+            shutil.copy2(org, dst)
+        except Exception as e:
+            print(e)
+            return False
+        return True
+
     def load_session(self):
         os.chdir(self._dir)
         try:
@@ -148,12 +163,50 @@ class session:
             os.chdir(self._dir)
             return True    
 
+    def load_session_turn2(self, country, turn):
+        org = self._dir + '/' + str(turn) + '/database_turn_' + country + '.db'
+        dst = self._dir + '/database.db'
+        try:
+            shutil.copy2(org, dst)
+        except Exception as e:
+            print(e)
+            return False
+        return True 
+
     def set_inactive(self):
         game_db = sqlite3.connect('game_session.db')
         game_db.execute("update game_session set active = 0 where game_id = :game_id;", {'game_id':self._game_id})
         game_db.commit()
 
+    def draw_map(self):
+        db = sqlite3.connect(self._db_dir)
+        drawmap.drawmap(db, self._dir)
 
+    def create_turn_dir(self):
+        print('Creating turn_dir-' + str(self.turn))
+        self._dir = org_dir + '/' + str(self._game_id)
+        os.mkdir(self._dir + '/' + str(self.turn))
+        print('Created turn_dir-' + str(self.turn))
+
+    def add_lock(self):
+        self.lock.append(threading.Event())
+        print("lock add:" + str(len(self.lock)-1))
+        return (len(self.lock)-1)
+
+    def thread_lock(self, lock_id):
+        self.lock[lock_id].clear()
+        self.lock[lock_id].wait()
+
+    def release_lock(self, lock_id):
+        self.lock[lock_id].set()
+        print("lock release:" + str(lock_id))
+
+    def clear_lock(self):
+        self.lock = []
+        
+
+
+        
 org_dir = os.getcwd()
 session_list = []
 

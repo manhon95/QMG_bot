@@ -30,10 +30,10 @@ def deploy_cb(bot, query, query_list, session):
     if query_list[2] == 'confirm':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
         deploy(bot, query_list[1], query_list[3], query_list[4], session)
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     elif query_list[2] == 'pass':
         bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text='Passed')
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     else:
         if query_list[2] == 'back':
             info = deploy_info(bot, query_list[1] , session.space_list_buffer, query_list[3], query_list[4], session)
@@ -64,7 +64,7 @@ def deploy(bot, active_country, space, card_id, session):
         function.updatecontrol(bot, db)
         check_reposition(bot, session)
         function.updatesupply(db)
-        lock_id = thread_lock.add_lock()
+        lock_id = session.add_lock()
         status_handler.send_status_card(bot, active_country, 'Deploy/Marshal', lock_id, session, piece_id = piece[0][0], space_id = space, card_id = card_id)
         db.commit()
         
@@ -89,10 +89,10 @@ def marshal_cb(bot, query, query_list, session):
     if query_list[2] == 'confirm':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
         marshal(bot, query_list[1], query_list[3], query_list[4], session)
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     elif query_list[2] == 'pass':
         bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text='Passed')
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     else:
         if query_list[2] == 'back':
             info = marshal_info(bot, query_list[1] , session.space_list_buffer, query_list[3], query_list[4], session)
@@ -119,7 +119,7 @@ def marshal(bot, active_country, space, card_id, session):
     function.updatecontrol(bot, db)
     check_reposition(bot, session)
     function.updatesupply(db)
-    lock_id = thread_lock.add_lock()
+    lock_id = session.add_lock()
     status_handler.send_status_card(bot, active_country, 'Deploy/Marshal', lock_id, session, piece_id = piece[0][0], space_id = space, card_id = card_id)
     db.commit()
 
@@ -127,13 +127,13 @@ def marshal(bot, active_country, space, card_id, session):
 def over_deploy_handler(bot, active_country, session):
     db = sqlite3.connect(session.get_db_dir())
     if db.execute("select count(*) from piece where location = 'none' and control = :country and type = 'air';", {'country':active_country}).fetchall()[0][0] == 0:
-        lock_id = thread_lock.add_lock()
+        lock_id = session.add_lock()
         space_list = function.control_air_space_list(active_country, db)
         battlebuild.self_remove_list.append(battlebuild.self_remove(active_country, space_list, None, lock_id, 'air'))
         self_remove_id = len(battlebuild.self_remove_list)-1
         info = battlebuild.self_remove_list[self_remove_id].self_remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
-        thread_lock.thread_lock(lock_id)
+        session.thread_lock(lock_id)
     return (db.execute("select count(*) from piece where location = 'none' and control = :country and type = 'air';", {'country':active_country}).fetchall()[0][0] == 0)
 
     #------------------------------------------Reposition------------------------------------------
@@ -143,11 +143,11 @@ def check_reposition(bot, session):
         no_control_air_list = db.execute("select pieceid, location from piece where type = 'air' and location not in (select location from piece where type in ('army', 'navy') and control = :country) and location != 'none' and control = :country;", {'country':country}).fetchall()
         if len(no_control_air_list) > 0:
             for piece in no_control_air_list:
-                lock_id = thread_lock.add_lock()
+                lock_id = session.add_lock()
                 info = reposition_info(country, piece[1], piece[0], lock_id, session)
                 if info != None:
                     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
-                    thread_lock.thread_lock(lock_id)
+                    session.thread_lock(lock_id)
                 else:
                     battlebuild.remove(bot, country, piece[0] ,piece[1] , None, session)
     
@@ -178,11 +178,11 @@ def reposition_cb(bot, query, query_list, session):
     if query_list[2] == 'confirm':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
         reposition(bot, query_list[1], query_list[3], query_list[4], db)
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     elif query_list[2] == 'pass':
         bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text='Passed')
         battlebuild.remove(bot, query_list[1], query_list[4], query_list[3], None, session)
-        thread_lock.release_lock(query_list[-1])
+        session.release_lock(query_list[-1])
     else:
         if query_list[2] == 'back':
             info = reposition_info(bot, query_list[1] , session.space_list_buffer, query_list[3], session)
@@ -264,11 +264,11 @@ class air_attack():
             battlebuild.remove(bot, session.handler_list[self.handler_id].active_country_id, air_id[0][0], self.space_id, None, session)
             battlebuild.remove(bot, session.handler_list[self.handler_id].active_country_id, session.handler_list[self.handler_id].piece_id, session.handler_list[self.handler_id].space_id, None, session)
             session.handler_list[self.handler_id].air_attack = True
-            thread_lock.release_lock(self.lock_id)
+            session.release_lock(self.lock_id)
             air_attack_list.pop(self.air_attack_id)
         elif query_list[1] == 'pass':
             bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
-            thread_lock.release_lock(self.lock_id)
+            session.release_lock(self.lock_id)
             air_attack_list.pop(self.air_attack_id)
         else:
             if query_list[1] == 'back':
