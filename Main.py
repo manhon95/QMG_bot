@@ -42,7 +42,6 @@ logger.addHandler(ch)
 
 @run_async
 def trial(update, context):
-    print('1')
     bot = context.bot
     session = game_session.find_session(update.message.chat_id)
     print('found')
@@ -92,19 +91,19 @@ def cb(update, context):
         if query_list[0] == 'play':
             game.play_cb(bot, query, query_list, session)
         if query_list[0] == 'r_r':
-            cardfunction.r_r_cb(bot, query, query_list, db)    
+            cardfunction.r_r_cb(bot, query, query_list, session)   
         if query_list[0] == 'air':
             game.air_force_cb(bot, query, query_list, session)    
         if query_list[0] == 'discard':
-            game.discard_cb(bot, query, query_list, db)
+            game.discard_cb(bot, query, query_list, session)
         if query_list[0] == 'dh':
-            function.discardhand_cb(bot, query, query_list, db)
+            function.discardhand_cb(bot, query, query_list, session)
         if query_list[0] == 'dh_nd':
-            function.discardhand_no_deck_cb(bot, query, query_list, db)
+            function.discardhand_no_deck_cb(bot, query, query_list, session)
         if query_list[0] == 'dr':
-            function.discardresponse_cb(bot, query, query_list, db)
+            function.discardresponse_cb(bot, query, query_list, session)
         if query_list[0] == 'dec':
-            function.discardew_cb(bot, query, query_list, db)
+            function.discardew_cb(bot, query, query_list, session)
         if query_list[0] == 'build':
             battlebuild.build_cb(bot, query, query_list, session)
         if query_list[0] == 'battle':
@@ -112,15 +111,15 @@ def cb(update, context):
         if query_list[0] == 'recuit':
             battlebuild.recuit_cb(bot, query, query_list, session)
         if query_list[0] == 'remove':
-            battlebuild.remove_list[query_list[-1]].remove_cb(bot, query, query_list, session)
+            session.remove_list[query_list[-1]].remove_cb(bot, query, query_list, session)
         if query_list[0] == 'self_remove':
-            battlebuild.self_remove_list[query_list[-1]].self_remove_cb(bot, query, query_list, session)
+            session.self_remove_list[query_list[-1]].self_remove_cb(bot, query, query_list, session)
         if query_list[0] == 'deploy':
             air.deploy_cb(bot, query, query_list, session)
         if query_list[0] == 'marshal':
             air.marshal_cb(bot, query, query_list, session)
         if query_list[0] == 'reposition':
-            air.reposition_cb(bot, query, query_list, db)
+            air.reposition_cb(bot, query, query_list, session)
         if query_list[0] == 'air_attack':
             air.air_attack_list[query_list[-1]].air_attack_cb(bot, query, query_list, session)
         if query_list[0] == 'status_play':
@@ -133,7 +132,7 @@ def cb(update, context):
         traceback.print_exc()
         logger.error(str(e))
         text = "<b>Exception:</b> " + str(e)
-        bot.send_message(chat_id = session.get_session_id(), text = text, parse_mode=telegram.ParseMode.HTML)
+        bot.send_message(chat_id = query.message.chat_id, text = text, parse_mode=telegram.ParseMode.HTML)
         
 
 player_list = {None:" "}
@@ -142,7 +141,6 @@ chat_message = None
 
 @run_async
 def message(update, context):
-    bot = context.bot
     try:
         logger.debug(update.message.from_user.full_name + ": " + update.message.text)
     except Exception as e:
@@ -190,7 +188,7 @@ def restart(update, context):
         if update.message.from_user.id in Admin:
             session = game_session.find_session(update.message.chat_id)
             if session:
-                game.game_end(bot, session)
+                game.end(bot, session)
             new_session = game_session.session_list.append(game_session.session(update.message.chat_id))
             text = "New game created, choose your country"
             keyboard = [[InlineKeyboardButton(function.countryid2name[country], callback_data="['start', '{}']".format(country))] for country in function.player_country_list]
@@ -324,7 +322,7 @@ def recover_turn_cb(bot, query, query_list, db):
                 text = "<b>Exception:</b> " + str(e)
                 bot.send_message(chat_id = query.message.chat_id, text = text, parse_mode=telegram.ParseMode.HTML)
         else:
-            bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text="Load fail")
+            bot.edit_message_text(chat_id = query.message.chat_id, message_id=query.message.message_id, text="Load fail")
     
 #-------------------------------------Draw Map-----------------------------------------------
 
@@ -335,10 +333,10 @@ def draw_map(update, context):
         session = game_session.find_session(update.message.chat_id)
         message_id = update.message.reply_text(text = "Drawing map...", parse_mode=telegram.ParseMode.HTML).message_id
         bot.send_chat_action(chat_id=update.effective_chat.id, action=telegram.ChatAction.TYPING)
-        session.drawmap(sqlite3.connect(session.get_db_dir()))
+        session.draw_map()
         keyboard = [[InlineKeyboardButton("❎", callback_data="['clear']")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        bot.send_photo(chat_id=update.message.chat_id, photo=open(org_dir + '/pic/tmp.jpg', 'rb', ), timeout=1000, reply_markup=reply_markup)
+        bot.send_photo(chat_id=update.message.chat_id, photo=open(session.get_dir() + '/tmp.jpg', 'rb'), timeout=1000, reply_markup=reply_markup)
         bot.delete_message(chat_id=update.effective_chat.id, message_id=message_id)
     except:
         traceback.print_exc()

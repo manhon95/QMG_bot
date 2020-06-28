@@ -56,13 +56,12 @@ def setup(bot, session):
         session.draw_map()
         chatid = db.execute("select chatid from game;").fetchall()
         bot.send_chat_action(chat_id=chatid[0][0], action=telegram.ChatAction.TYPING)
-        bot.send_photo(chat_id=chatid[0][0], photo=open('pic/tmp.jpg', 'rb'))
+        bot.send_photo(chat_id=chatid[0][0], photo=open(session.get_dir() + '/tmp.jpg', 'rb'))
     except Exception:
         pass
 
 def setup_cb(bot, query, query_list, db):
     if query_list[2] == 'confirm':
-        
         db.execute("update card set location = 'discardd' where location = 'selected' and control =:country;", {'country':query_list[1]})
         db.execute("update country set status = 'inactive' where id =:country;", {'country':query_list[1]})
         db.commit()
@@ -140,13 +139,20 @@ def play(bot, country, session):
         print("Autosave success - play")
     else:
         print("Autosave fail - play")
+    if session.save_session_turn2(country):
+        print("Autosave2 success - TURN")
+    else:
+        print("Autosave2 fail - TURN")
+    if session.save_session2():
+        print("Autosave2 success - play")
+    else:
+        print("Autosave2 fail - play")
     global r_r_used
     r_r_used = False
     db = sqlite3.connect(session.get_db_dir())
     group_chat_id = db.execute("select chatid from game;").fetchall()
     text = "<b>" + function.countryid2name[country] + "</b> Play step"
-    global message_id
-    message_id = bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML).message_id
+    session.message_id = bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML).message_id
     lock_id = session.add_lock()
     status_handler.send_status_card(bot, country, 'Beginning of Play step', lock_id, session, card_id = None)
     session.draw_map()
@@ -164,7 +170,7 @@ def play(bot, country, session):
         keyboard += extra_keyboard
     reply_markup = InlineKeyboardMarkup(keyboard)
     #bot.send_message(chat_id = playerid[0][0], text = function.countryid2name[country] + " - Play a card", reply_markup = reply_markup)
-    bot.send_photo(chat_id = playerid[0][0], caption = function.countryid2name[country] + " - Play a card", reply_markup = reply_markup, photo=open('pic/tmp.jpg', 'rb'))
+    bot.send_photo(chat_id = playerid[0][0], caption = function.countryid2name[country] + " - Play a card", reply_markup = reply_markup, photo=open(session.get_dir() + '/tmp.jpg', 'rb'))
     db.commit()
 
 def status_play_cb(bot, query, query_list, session):
@@ -189,21 +195,20 @@ def play_cb(bot, query, query_list, session):
         lock_id = session.add_lock()
         status_handler.send_status_card(bot, query_list[1], 'After Playing a card', lock_id, session, card_id = query_list[3])
         bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
-        global message_id
-        bot.delete_message(chat_id = db.execute("select chatid from game;").fetchall()[0][0], message_id = message_id)
+        bot.delete_message(chat_id = db.execute("select chatid from game;").fetchall()[0][0], message_id = session.message_id)
         db.execute("update country set status = 'air_force' where id = :country;", {'country':query_list[1]})
         db.commit()
         air_force(bot, query_list[1], session)
     elif query_list[2] == 'pass':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
-        function.discardhand(bot, query_list[1], 1, db)
+        function.discardhand(bot, query_list[1], 1, session)
         db.commit()
         #supply(bot, query_list[1])
         session = game_session.find_session(query.message.chat_id)
         air_force(bot, query_list[1], session)
     elif query_list[2] == 'r_r_confirm':
         bot.delete_message(chat_id= query.message.chat_id, message_id = query.message.message_id)
-        cardfunction.r_r(bot, query_list[1], db)
+        cardfunction.r_r(bot, query_list[1], session)
         global r_r_used
         r_r_used = True
         hand = db.execute("select name, cardid, control, type from card where location = 'hand' and control = :country order by sequence;", {'country':query_list[1]}).fetchall()
@@ -217,7 +222,7 @@ def play_cb(bot, query, query_list, session):
         if extra_keyboard != None:
             keyboard += extra_keyboard
         reply_markup = InlineKeyboardMarkup(keyboard)
-        bot.send_photo(chat_id = query.message.chat_id, caption = function.countryid2name[query_list[1]] + " - Play a card", reply_markup = reply_markup, photo=open('pic/tmp.jpg', 'rb'))
+        bot.send_photo(chat_id = query.message.chat_id, caption = function.countryid2name[query_list[1]] + " - Play a card", reply_markup = reply_markup, photo=open(session.get_dir() + '/tmp.jpg', 'rb'))
     elif query_list[2] == 'r_r':
         text = "Reallocate Resources - Once per turn discard 4 cards from your hand to search your draw deck for a 'Build Army', 'Build Navy', 'Land Battle', 'Sea Battle', or 'Deploy Air Force' and add it to your hand."
         keyboard = [[InlineKeyboardButton('Confirm', callback_data="['play', '{}', 'r_r_confirm']".format(query_list[1]))],
@@ -263,11 +268,14 @@ def air_force(bot, country, session):
         print("Autosave success - air_force")
     else:
         print("Autosave fail - air_force")
+    if session.save_session2():
+        print("Autosave2 success - air_force")
+    else:
+        print("Autosave2 fail - air_force")
     db = sqlite3.connect(session.get_db_dir())
     group_chat_id = db.execute("select chatid from game;").fetchall()
     text = "<b>" + function.countryid2name[country] + "</b> Air Force step"
-    global message_id
-    message_id = bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML).message_id
+    session.message_id = bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML).message_id
     lock_id = session.add_lock()
     status_handler.send_status_card(bot, country, 'Beginning of Air step', lock_id, session)
     hand_count = db.execute("select count(*) from card where location = 'hand' and control = :country;", {'country':country}).fetchall()
@@ -285,10 +293,10 @@ def air_force(bot, country, session):
             keyboard += extra_keyboard'''
         session.draw_map()
         reply_markup = InlineKeyboardMarkup(keyboard)
-        bot.send_photo(chat_id = playerid[0][0], caption = function.countryid2name[country] + " - Air Force step", reply_markup = reply_markup, photo=open('pic/tmp.jpg', 'rb'))
+        bot.send_photo(chat_id = playerid[0][0], caption = function.countryid2name[country] + " - Air Force step", reply_markup = reply_markup, photo=open(session.get_dir() + '/tmp.jpg', 'rb'))
         db.commit()
     else:
-        bot.delete_message(chat_id = group_chat_id[0][0], message_id = message_id)
+        bot.delete_message(chat_id = group_chat_id[0][0], message_id = session.message_id)
         db.commit()
         supply(bot, country, session)
                                 
@@ -305,13 +313,13 @@ def air_force_cb(bot, query, query_list, session):
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
     elif query_list[2] == 'm':
-        function.discardhand(bot, query_list[1], 1, db)
+        function.discardhand(bot, query_list[1], 1, session)
         lock_id = session.add_lock()
         space_list = function.control_air_space_list(query_list[1], db)
-        battlebuild.self_remove_list.append(battlebuild.self_remove(query_list[1], space_list, None, lock_id, 'air'))
-        print("self_remove_id: " + str(len(battlebuild.self_remove_list)-1))
-        self_remove_id = len(battlebuild.self_remove_list)-1
-        info = battlebuild.self_remove_list[self_remove_id].self_remove_info(session)
+        session.self_remove_list.append(battlebuild.self_remove(query_list[1], space_list, None, lock_id, 'air', session))
+        print("self_remove_id: " + str(len(session.self_remove_list)-1))
+        self_remove_id = len(session.self_remove_list)-1
+        info = session.self_remove_list[self_remove_id].self_remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
         lock_id = session.add_lock()
@@ -319,8 +327,7 @@ def air_force_cb(bot, query, query_list, session):
         info = air.marshal_info(bot, query_list[1], space_list, None, lock_id, session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
-    global message_id
-    bot.delete_message(chat_id = db.execute("select chatid from game;").fetchall()[0][0], message_id = message_id)
+    bot.delete_message(chat_id = db.execute("select chatid from game;").fetchall()[0][0], message_id = session.message_id)
     db.execute("update country set status = 'supply' where id = :country;", {'country':query_list[1]})
     db.commit()
     session = game_session.find_session(query.message.chat_id)
@@ -332,6 +339,10 @@ def supply(bot, country, session):
         print("Autosave success - supply")
     else:
         print("Autosave fail - supply")
+    if session.save_session2():
+        print("Autosave2 success - supply")
+    else:
+        print("Autosave2 fail - supply")
     db = sqlite3.connect(session.get_db_dir())
     function.updatecontrol(bot, db)
     function.updatesupply(db)
@@ -357,7 +368,7 @@ def supply(bot, country, session):
         try:
             session.draw_map()
             bot.send_chat_action(chat_id=chatid[0][0], action=telegram.ChatAction.TYPING)
-            bot.send_photo(chat_id=chatid[0][0], photo=open('pic/tmp.jpg', 'rb'), timeout=1000)
+            bot.send_photo(chat_id=chatid[0][0], photo=open(session.get_dir() + '/tmp.jpg', 'rb'), timeout=1000)
         except Exception:
             pass
         db.execute("update country set status = 'victory' where id = :country;", {'country':country})
@@ -371,12 +382,15 @@ def victory(bot, country, session):
         print("Autosave success - victory")
     else:
         print("Autosave fail - victory")
+    if session.save_session2():
+        print("Autosave2 success - victory")
+    else:
+        print("Autosave2 fail - victory")
     db = sqlite3.connect(session.get_db_dir())
     chatid = db.execute("select chatid from game;").fetchall()
     if country not in ['fr', 'ch']:
         text = "<b>" + function.countryid2name[country] + "</b> Victory step"
-        global message_id
-        message_id = bot.send_message(chat_id = chatid[0][0], text = text, parse_mode=telegram.ParseMode.HTML).message_id
+        session.message_id = bot.send_message(chat_id = chatid[0][0], text = text, parse_mode=telegram.ParseMode.HTML).message_id
         lock_id = session.add_lock()
         status_handler.send_status_card(bot, country, 'Beginning of Victory step', lock_id, session)
     if db.execute("select enemy from country where id = :country", {'country':country}).fetchall() == db.execute("select distinct control from space where spaceid = (select home from country where id = :country);", {'country':country}).fetchall():
@@ -413,7 +427,7 @@ def victory(bot, country, session):
         text = "<b>" + function.countryid2name[country] + "</b> Turn - " + str(game_turn[0][0]) + " Axis: <b>" + str(side_pt[0]) + "</b> Allies: <b>" + str(side_pt[1]) + "</b>"
         vp_message = bot.send_message(chat_id = chatid[0][0], text = text, parse_mode=telegram.ParseMode.HTML).message_id
         bot.pin_chat_message(chat_id = chatid[0][0], message_id = vp_message, disable_notification=True)
-        bot.delete_message(chat_id = chatid[0][0], message_id = message_id)
+        bot.delete_message(chat_id = chatid[0][0], message_id = session.message_id)
         db.execute("update country set status = 'discard' where id = :country;", {'country':country})
         db.commit()
         discard(bot, country, session)
@@ -425,11 +439,14 @@ def discard(bot, country, session):
         print("Autosave success - discard")
     else:
         print("Autosave fail - discard")
+    if session.save_session2():
+        print("Autosave2 success - discard")
+    else:
+        print("Autosave2 fail - discard")
     db = sqlite3.connect(session.get_db_dir())
     group_chat_id = db.execute("select chatid from game;").fetchall()
     text = "<b>" + function.countryid2name[country] + "</b> Discard step"
-    global message_id
-    message_id = bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML).message_id
+    session.message_id = bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML).message_id
     lock_id = session.add_lock()
     status_handler.send_status_card(bot, country, 'Beginning of Discard step', lock_id, session)
     hand = db.execute("select name, cardid, type, text from card where location = 'hand' and control = :country order by sequence;", {'country':country}).fetchall()
@@ -451,7 +468,8 @@ def discard(bot, country, session):
         bot.send_message(chat_id = playerid[0][0], text = text, reply_markup = reply_markup, parse_mode=telegram.ParseMode.HTML)
         db.commit()
 
-def discard_cb(bot, query, query_list, db):
+def discard_cb(bot, query, query_list, session):
+    db = sqlite3.connect(session.get_db_dir())
     if query_list[2] == 'confirm':
         bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
         discard_count = db.execute("select count(*) from card where location = 'selected' and control =:country order by sequence;", {'country':query_list[1]}).fetchall()
@@ -460,8 +478,7 @@ def discard_cb(bot, query, query_list, db):
             function.deduct_vp(bot, query_list[1], 1, db)
         else:
             db.execute("update card set location = 'discardd' where location = 'selected' and control =:country;", {'country':query_list[1]})
-        global message_id
-        bot.delete_message(chat_id = db.execute("select chatid from game;").fetchall()[0][0], message_id = message_id)
+        bot.delete_message(chat_id = db.execute("select chatid from game;").fetchall()[0][0], message_id = session.message_id)
         db.execute("update country set status = 'draw' where id = :country;", {'country':query_list[1]})
         db.commit()
         session = game_session.find_session(query.message.chat_id)
@@ -502,6 +519,10 @@ def draw(bot, country, session):
         print("Autosave success - draw")
     else:
         print("Autosave fail - draw")
+    if session.save_session2():
+        print("Autosave2 success - draw")
+    else:
+        print("Autosave2 fail - draw")
     db = sqlite3.connect(session.get_db_dir())
     lock_id = session.add_lock()
     status_handler.send_status_card(bot, country, 'Beginning of Draw step', lock_id, session)
@@ -562,20 +583,21 @@ def draw(bot, country, session):
         else:
             text = "Game carry on"
             session.turn += 1
+            session.create_turn_dir()
             db.execute("update game set turn = turn + 1;")
         bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
     db.commit()
     session.clear_lock()
     if not game_end:
-        
         play(bot, next_turn[country], session)
     else:
-        game_end(bot, session)
+        end(bot, session)
 
 
 #------------------------------------------Game End------------------------------------------
-def game_end(bot, session):
+def end(bot, session):
     session.set_inactive()
-    del session
-    print('delete session')
+    session_id = session.get_session_id()
+    game_session.session_list.pop(session_id)
+    print('delete session-'+str(session_id))
     return

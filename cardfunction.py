@@ -17,15 +17,16 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageH
 #----------------------Pass-----------------------
 pass_ = True
 #----------------------Reallocate Resources-----------------------
-def r_r(bot, country, db):
+def r_r(bot, country, session):
     print('in r_r')
+    db = sqlite3.connect(session.get_db_dir())
     group_chat_id = db.execute("select chatid from game;").fetchall()
     text = "<b>" + function.countryid2name[country] + "</b> uses Reallocate Resources"
     bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
     if country == 'us' and db.execute("select location from card where cardid = 355;").fetchall()[0][0] == 'played':
-        function.discardhand(bot, country, 1, db)
+        function.discardhand(bot, country, 1, session)
     else:
-        function.discardhand(bot, country, 4, db)
+        function.discardhand(bot, country, 4, session)
     lock_id = session.add_lock()
     info = r_r_info(bot, country, lock_id, db)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
@@ -55,7 +56,8 @@ def r_r_info(bot, country, lock_id, db):
         reply_markup = None
     return  chat_id[0][0], text, reply_markup
 
-def r_r_cb(bot, query, query_list, db):
+def r_r_cb(bot, query, query_list, session):
+    db = sqlite3.connect(session.get_db_dir())
     if query_list[1] == 'confirm':
         bot.delete_message(chat_id= query.message.chat_id, message_id = query.message.message_id)
         if query_list[2] == 'us' and db.execute("select location from card where cardid = 356;").fetchall()[0][0] == 'played' and db.execute("select count(*) from card where name = :card and location in ('discardu', 'discardd', 'played') and control=:country;", {'country':query_list[2], 'card':query_list[3]}).fetchall()[0][0] > 0:
@@ -81,7 +83,7 @@ cardtofunction = {#ge
                   8:7,
                   10:9,11:9,12:9,13:9,14:9,15:9,16:9,
                   18:17,
-                  23:22,
+                  22:21,
                   #jp
                   69:68,70:68,71:68,
                   73:72,74:72,75:72,76:72,77:72,78:72,
@@ -132,7 +134,7 @@ def play_card(bot, cardid, country, session):
         eval(function)
 
 #---------------------Use Status------------------------
-need_info_status = [42,43,45,50,53,61,63,64,97,98,99,101,106,107,109,110,111,119,120,124,126,167,168,169,170,177,227,229,230,231,232,233,234,242,243,244,276,282,284,285,286,287,288,289,290,292,295,300,303,344,346,348,349,350,354,362,363,367,370]
+need_info_status = [42,43,45,50,53,61,63,64,97,98,99,101,106,107,109,110,111,119,120,124,126,167,168,169,170,174,177,227,229,230,231,232,233,234,242,243,244,276,282,284,285,286,287,288,289,290,292,295,300,303,344,346,348,349,350,354,362,363,367,370]
 once_per_turn_status = [42,43,45,47,50,52,227,229,272,275,276,280,344,348,350,351,353,357]
 need_cost_status = [42,43,44,45,50,161,227,229,275,276,278,279,280,282,284,344,345,346,348,350,353,354,357]
 need_cost_bolster = [60,61,63,64,65,66,119,120,121,122,124,126,127,175,177,178,239,240,241,242,243,244,245,296,297,298,300,301,302,303,362,363,366,368,369,370]
@@ -222,7 +224,7 @@ def c17(bot, session):
     #------------------c19---------------------
 def c19(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    if {11,20}.isdisjoint(set(function.side_control_space_list('Axis', db, space_type = 'all'))):
+    if {11,20}.isdisjoint(set(function.control_side_space_list('Axis', db, space_type = 'all'))):
         function.ewdiscard(bot, 19, 'ge', 'su', 5, session)
         function.add_vp(bot, 'ge', 1, db)
     #------------------c20---------------------
@@ -329,7 +331,7 @@ def c27(bot, session):
     #------------------c28----------------------
 def c28(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'ge', 1, db)
+    function.discarddeck(bot, 'ge', 1, session)
     if 21 in function.recuit_list('ge', db):
         battlebuild.recuit(bot, 'ge', 21, 28, session)
     lock_id = session.add_lock()
@@ -413,7 +415,7 @@ def c30_cb(bot, query, query_list, session):
         bot.edit_message_text(chat_id = query.message.chat_id, message_id = query.message.message_id, text = info[1], reply_markup = info[2])
     elif query_list[1] == 'pass':
         bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
-        chat_id = db.execute("select playerid from country where id = :country;", {'country':country}).fetchall()
+        chat_id = db.execute("select chatid from game;").fetchall()
         text = "Germany play nothing"
         bot.send_message(chat_id = chat_id[0][0], text = text)
         session.release_lock(query_list[-1])
@@ -517,7 +519,7 @@ def c33_cb(bot, query, query_list, session):
         bot.edit_message_text(chat_id = query.message.chat_id, message_id = query.message.message_id, text = info[1], reply_markup = info[2])
     elif query_list[1] == 'pass':
         bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
-        chat_id = db.execute("select playerid from country where id = :country;", {'country':country}).fetchall()
+        chat_id = db.execute("select chatid from game;").fetchall()
         text = "Germany play nothing"
         bot.send_message(chat_id = chat_id[0][0], text = text)
         session.release_lock(query_list[-1])
@@ -549,7 +551,7 @@ def c35(bot, session):
         if info != None:
             bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
             session.thread_lock(lock_id)
-    function.discardhand(bot, 'ge', 1, db)
+    function.discardhand(bot, 'ge', 1, session)
     function.shuffledeck(bot, 'ge', db)
 
 def c35_info(lock_id, session):
@@ -696,12 +698,12 @@ def c38(bot, session):
 def c41(bot, active_country, session):
     db = sqlite3.connect(session.get_db_dir())
     #active_country = db.execute("select info_1 from status_handler where handler_id = :handler_id;", {'handler_id':handler_id}).fetchall()[0][0]
-    function.discarddeck(bot, active_country, 3, db)
+    function.discarddeck(bot, active_country, 3, session)
     
     #------------------c42----------------------
 def c42_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'ge', 1, db)
+    function.discarddeck(bot, 'ge', 1, session)
 
 def c42(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -717,7 +719,7 @@ def c42(bot, handler_id, session):
     #------------------c43----------------------
 def c43_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'ge', 1, db)
+    function.discarddeck(bot, 'ge', 1, session)
 
 def c43(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -728,7 +730,7 @@ def c43(bot, handler_id, session):
     #------------------c44----------------------
 def c44_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'ge', 2, db)
+    function.discarddeck(bot, 'ge', 2, session)
 
 def c44(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -738,7 +740,7 @@ def c44(bot, session):
     #------------------c45----------------------
 def c45_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'ge', 1, db)
+    function.discarddeck(bot, 'ge', 1, session)
 
 def c45(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -753,14 +755,11 @@ def c45(bot, handler_id, session):
 
     #------------------c46----------------------
 def c46(bot, active_country, session):
-    db = sqlite3.connect(session.get_db_dir())
-    db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, active_country, 3, db)
+    function.discarddeck(bot, active_country, 3, session)
 
     #------------------c47----------------------
 def c47(bot, active_country, session):
-    db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, active_country, 3, db)
+    function.discarddeck(bot, active_country, 3, session)
 
     #------------------c48----------------------
 c48_list = []
@@ -774,7 +773,7 @@ def c48(bot, session):
         group_chat_id = db.execute("select chatid from game;").fetchall()
         if card_count[0][0] != 0:
             top_card = db.execute("select name, cardid from card where location = 'deck' and control = 'ge';").fetchall()
-        text = "<b>" + countryid2name[country] + "</b> finished his deck"
+        text = "<b>" + function.countryid2name['ge'] + "</b> finished his deck"
         bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
     else:
         top_card = db.execute("select name, cardid from card where location = 'deck' and sequence <= 3 and control = 'ge';").fetchall()
@@ -834,7 +833,7 @@ def c48_cb(bot, query, query_list, session):
     #------------------c50----------------------
 def c50_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'ge', 2, db)
+    function.discarddeck(bot, 'ge', 2, session)
 
 def c50(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -852,23 +851,23 @@ def c50(bot, handler_id, session):
     #------------------c52----------------------
 def c52(bot, active_country, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, active_country, 4, db)
+    function.discarddeck(bot, active_country, 4, session)
 
     #------------------c53----------------------
 def c53(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
     passive_country = session.handler_list[handler_id].passive_country_id
     if 11 in function.control_space_list('ge', db):
-        function.discarddeck(bot, passive_country, 2, db)
+        function.discarddeck(bot, passive_country, 2, session)
     else:
-        function.discarddeck(bot, passive_country, 1, db)
+        function.discarddeck(bot, passive_country, 1, session)
 
     #------------------c54-57----------------------
 
     #------------------c58----------------------
 def c58(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'ge', 1, db)
+    function.discarddeck(bot, 'ge', 1, session)
     space_list1 = [5, 9, 10]
     space_list2 = function.battle_list('ge', db, space_type = 'sea')
     space_list = list(set(space_list1) & set(space_list2))
@@ -886,7 +885,7 @@ def c59(bot, session):
     #------------------c60----------------------
 def c60_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'ge', 1, db)
+    function.discarddeck(bot, 'ge', 1, session)
 
 def c60(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -901,7 +900,7 @@ def c60(bot, session):
     #------------------c61----------------------
 def c61_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'ge', 1, db)
+    function.discarddeck(bot, 'ge', 1, session)
     
 def c61(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -923,7 +922,7 @@ def c62(bot, session):
     #------------------c63----------------------
 def c63_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'ge', 1, db)
+    function.discarddeck(bot, 'ge', 1, session)
 
 def c63(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -939,7 +938,7 @@ def c63(bot, handler_id, session):
     #------------------c64----------------------
 def c64_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'ge', 1, db)
+    function.discarddeck(bot, 'ge', 1, session)
 
 def c64(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -948,17 +947,17 @@ def c64(bot, handler_id, session):
     space_list1 = function.within('Axis', [marshalled_space], 1, db)
     space_list2 = function.control_side_air_space_list('Allied', db, space_type = 'all')
     space_list = list(set(space_list1) & set(space_list2))
-    battlebuild.self_remove_list.append(battlebuild.self_remove('ge', space_list, 64, lock_id, 'air'))
-    print("self_remove_id: " + str(len(battlebuild.self_remove_list)-1))
-    self_remove_id = len(battlebuild.self_remove_list)-1
-    info = battlebuild.self_remove_list[self_remove_id].self_remove_info(session)
+    session.self_remove_list.append(battlebuild.self_remove('ge', space_list, 64, lock_id, 'air', session))
+    print("self_remove_id: " + str(len(session.self_remove_list)-1))
+    self_remove_id = len(session.self_remove_list)-1
+    info = session.self_remove_list[self_remove_id].self_remove_info(session)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
     lock_id = session.add_lock()
 
     #------------------c65----------------------
 def c65_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'ge', 1, db)
+    function.discarddeck(bot, 'ge', 1, session)
 
 def c65(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -1139,7 +1138,7 @@ def c100_cb(bot, query, query_list, session):
     db = sqlite3.connect(session.get_db_dir())
     if query_list[1] == 'pass':
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
-        session.release_lock(self.lock_id)
+        session.release_lock(query_list[-1])
     else:
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
         piece_id = db.execute("select pieceid from piece where location = :space and control = 'ch' and type = 'army';", {'space':query_list[1]}).fetchall()
@@ -1295,7 +1294,7 @@ def c114(bot, session):
     #------------------c119---------------------- 
 def c119_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardresponse(bot, 'jp', 1, db)
+    function.discardresponse(bot, 'jp', 1, session)
 
 def c119(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -1312,7 +1311,7 @@ def c119(bot, handler_id, session):
     #------------------c120---------------------- 
 def c120_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardresponse(bot, 'jp', 1, db)
+    function.discardresponse(bot, 'jp', 1, session)
 
 def c120(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -1323,7 +1322,7 @@ def c120(bot, handler_id, session):
     #------------------c121---------------------- 
 def c121_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardresponse(bot, 'jp', 1, db)
+    function.discardresponse(bot, 'jp', 1, session)
 
 def c121(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -1336,7 +1335,7 @@ def c121(bot, session):
     #------------------c122---------------------- 
 def c122_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardresponse(bot, 'jp', 1, db)
+    function.discardresponse(bot, 'jp', 1, session)
 
 def c122(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -1357,7 +1356,7 @@ def c123(bot, session):
     #------------------c124----------------------
 def c124_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardresponse(bot, 'jp', 1, db)
+    function.discardresponse(bot, 'jp', 1, session)
 
 def c124(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -1379,7 +1378,7 @@ def c125(bot, session):
     #------------------c126---------------------- 
 def c126_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardresponse(bot, 'jp', 1, db)
+    function.discardresponse(bot, 'jp', 1, session)
 
 def c126(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -1388,17 +1387,16 @@ def c126(bot, handler_id, session):
     space_list1 = function.within('Axis', [marshalled_space], 1, db)
     space_list2 = function.control_side_air_space_list('Allied', db, space_type = 'all')
     space_list = list(set(space_list1) & set(space_list2))
-    battlebuild.self_remove_list.append(battlebuild.self_remove('jp', space_list, 126, lock_id, 'air'))
-    print("self_remove_id: " + str(len(battlebuild.self_remove_list)-1))
-    self_remove_id = len(battlebuild.self_remove_list)-1
-    info = battlebuild.self_remove_list[self_remove_id].self_remove_info(session)
+    session.self_remove_list.append(battlebuild.self_remove('jp', space_list, 126, lock_id, 'air', session))
+    print("self_remove_id: " + str(len(session.self_remove_list)-1))
+    self_remove_id = len(session.self_remove_list)-1
+    info = session.self_remove_list[self_remove_id].self_remove_info(session)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
     session.thread_lock(lock_id)
     
     #------------------c127----------------------
 def c127_cost(bot, session):
-    db = sqlite3.connect(session.get_db_dir())
-    function.discardresponse(bot, 'jp', 1, db)
+    function.discardresponse(bot, 'jp', 1, session)
 
 def c127(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -1564,10 +1562,10 @@ def c151(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     if 17 in function.remove_list('it', db):
         lock_id = session.add_lock()
-        battlebuild.remove_list.append(battlebuild.remove_obj('it', [17], 151, lock_id, 'army'))
-        print("remove_id: " + str(len(battlebuild.remove_list)-1))
-        remove_id = len(battlebuild.remove_list)-1
-        info = battlebuild.remove_list[remove_id].remove_info(session)
+        session.remove_list.append(battlebuild.remove_obj('it', [17], 151, lock_id, 'army', session))
+        print("remove_id: " + str(len(session.remove_list)-1))
+        remove_id = len(session.remove_list)-1
+        info = session.remove_list[remove_id].remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
 
@@ -1628,10 +1626,10 @@ def c156(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     if 25 in function.remove_list('it', db):
         lock_id = session.add_lock()
-        battlebuild.remove_list.append(battlebuild.remove_obj('it', [25], 156, lock_id, 'army'))
-        print("remove_id: " + str(len(battlebuild.remove_list)-1))
-        remove_id = len(battlebuild.remove_list)-1
-        info = battlebuild.remove_list[remove_id].remove_info(session)
+        session.remove_list.append(battlebuild.remove_obj('it', [25], 156, lock_id, 'army', session))
+        print("remove_id: " + str(len(session.remove_list)-1))
+        remove_id = len(session.remove_list)-1
+        info = session.remove_list[remove_id].remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
 
@@ -1658,10 +1656,10 @@ def c158(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     if 19 in function.remove_list('it', db):
         lock_id = session.add_lock()
-        battlebuild.remove_list.append(battlebuild.remove_obj('it', [19], 158, lock_id, 'army'))
-        print("remove_id: " + str(len(battlebuild.remove_list)-1))
-        remove_id = len(battlebuild.remove_list)-1
-        info = battlebuild.remove_list[remove_id].remove_info(session)
+        session.remove_list.append(battlebuild.remove_obj('it', [19], 158, lock_id, 'army', session))
+        print("remove_id: " + str(len(session.remove_list)-1))
+        remove_id = len(session.remove_list)-1
+        info = session.remove_list[remove_id].remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
 
@@ -1669,11 +1667,9 @@ def c158(bot, session):
     #------------------c160----------------------
     #------------------c161----------------------
 def c161_cost(bot, session):
-    db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'it', 3, db)
+    function.discardhand(bot, 'it', 3, session)
 
 def c161(bot, session):
-    db = sqlite3.connect(session.get_db_dir())
     c136(bot, session)
     
     #------------------c162----------------------
@@ -1711,18 +1707,19 @@ def c170(bot, handler_id, session):
     #------------------c171----------------------
 c171_used = False
 def c171(bot, session):
-    db = sqlite3.connect(session.get_db_dir())
     global c171_used
     c171_used = True
 
     #------------------c172~173----------------------
 
     #------------------c174----------------------
+def c174(bot, handler_id, session):
+    passive_country = session.handler_list[handler_id].passive_country_id
+    function.discarddeck(bot, passive_country, 3, session)
 
     #------------------c175----------------------
 def c175_cost(bot, session):
-    db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'it', 1, db)
+    function.discardhand(bot, 'it', 1, session)
 
 def c175(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -1732,7 +1729,7 @@ def c175(bot, session):
                 [InlineKeyboardButton('Marshal an Air Force', callback_data="['c175', 'm', {}]".format(lock_id))]]
     session.draw_map()
     reply_markup = InlineKeyboardMarkup(keyboard)
-    bot.send_photo(chat_id = chat_id[0][0], caption = function.countryid2name['it'] + " - Air Force step", reply_markup = reply_markup, photo=open('pic/tmp.jpg', 'rb'))
+    bot.send_photo(chat_id = chat_id[0][0], caption = function.countryid2name['it'] + " - Air Force step", reply_markup = reply_markup, photo=open(session.get_dir() + '/tmp.jpg', 'rb'))
     session.thread_lock(lock_id)
 
 def c175_cb(bot, query, query_list, session):
@@ -1746,10 +1743,10 @@ def c175_cb(bot, query, query_list, session):
     else:
         lock_id = session.add_lock()
         space_list = function.control_air_space_list('it', db)
-        battlebuild.self_remove_list.append(battlebuild.self_remove('it', space_list, None, lock_id, 'air'))
-        print("self_remove_id: " + str(len(battlebuild.self_remove_list)-1))
-        self_remove_id = len(battlebuild.self_remove_list)-1
-        info = battlebuild.self_remove_list[self_remove_id].self_remove_info(session)
+        session.self_remove_list.append(battlebuild.self_remove('it', space_list, None, lock_id, 'air', session))
+        print("self_remove_id: " + str(len(session.self_remove_list)-1))
+        self_remove_id = len(session.self_remove_list)-1
+        info = session.self_remove_list[self_remove_id].self_remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         lock_id = session.add_lock()
         space_list = function.deploy_list('it', db, space_type = 'sea')
@@ -1767,7 +1764,7 @@ def c176(bot, session):
     #------------------c177----------------------
 def c177_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'it', 2, db)
+    function.discardhand(bot, 'it', 2, session)
 
 def c177(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -1776,10 +1773,10 @@ def c177(bot, handler_id, session):
     space_list1 = function.within('Axis', [marshalled_space], 1, db)
     space_list2 = function.control_side_air_space_list('Allied', db, space_type = 'all')
     space_list = list(set(space_list1) & set(space_list2))
-    battlebuild.remove_list.append(battlebuild.remove_obj('it', space_list, 177, lock_id, 'air'))
-    print("remove_id: " + str(len(battlebuild.remove_list)-1))
-    remove_id = len(battlebuild.remove_list)-1
-    info = battlebuild.remove_list[remove_id].remove_info(session)
+    session.remove_list.append(battlebuild.remove_obj('it', space_list, 177, lock_id, 'air', session))
+    print("remove_id: " + str(len(session.remove_list)-1))
+    remove_id = len(session.remove_list)-1
+    info = session.remove_list[remove_id].remove_info(session)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
     lock_id = session.add_lock()
 
@@ -1787,9 +1784,10 @@ def c177(bot, handler_id, session):
 c178_number = 0
 def c178_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
+    hand_list = db.execute("select name, cardid, type, text from card where location = 'hand' and control = 'ge' order by sequence;").fetchall()
     if len(hand_list) == 0:
-        text = "<b>" + countryid2name[country] + "</b> finished his hand"
-        bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
+        text = "<b>" + function.countryid2name[country] + "</b> finished his hand"
+        bot.send_message(chat_id = session.get_group_chat_id(), text = text, parse_mode=telegram.ParseMode.HTML)
     else:
         lock_id = session.add_lock()
         chat_id = db.execute("select playerid from country where id = 'ge';").fetchall()
@@ -1802,10 +1800,11 @@ def c178_cost(bot, session):
         session.thread_lock(lock_id)
         
 def c178(bot, session):
+    db = sqlite3.connect(session.get_db_dir())
     function.shufflediscard(bot, 'it', db)
     discard_list = db.execute("select cardid from card where ((location in ('discardd', 'discardu')) or (location = 'played' and type not in ('Status', 'Response', 'Bolster')) or (location = 'used' and type in ('Response', 'Bolster'))) and control = 'it' and sequence <= :number;", {'number':c178_number}).fetchall()
     for discard in discard_list:
-        movecardtop(bot, discard[0], db)
+        function.movecardtop(bot, discard[0], db)
     
 def c178_cb(bot, query, query_list, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -1854,16 +1853,18 @@ c179_used = False
 def c179(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     lock_id = session.add_lock()
-    space_list = function.control_air_space_list(query_list[1], db)
-    battlebuild.self_remove_list.append(battlebuild.self_remove(query_list[1], space_list, 179, lock_id, 'air'))
-    print("self_remove_id: " + str(len(battlebuild.self_remove_list)-1))
-    self_remove_id = len(battlebuild.self_remove_list)-1
-    info = battlebuild.self_remove_list[self_remove_id].self_remove_info(session)
+    space_list = function.control_air_space_list('it', db)
+    session.self_remove_list.append(battlebuild.self_remove('it', space_list, 179, lock_id, 'air', session))
+    print("self_remove_id: " + str(len(session.self_remove_list)-1))
+    self_remove_id = len(session.self_remove_list)-1
+    info = session.self_remove_list[self_remove_id].self_remove_info(session)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
+    global c179_used
     c179_used = True
     
     #------------------c180----------------------
 def c180(bot, session):
+    db = sqlite3.connect(session.get_db_dir())
     if 13 in function.recuit_list('it', db):
         battlebuild.recuit(bot, 'it', 13, 180, session)
 
@@ -2113,10 +2114,10 @@ def c213(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     if 22 in function.remove_list('uk', db):
         lock_id = session.add_lock()
-        battlebuild.remove_list.append(battlebuild.remove_obj('uk', [22], 213, lock_id, 'army'))
-        print("remove_id: " + str(len(battlebuild.remove_list)-1))
-        remove_id = len(battlebuild.remove_list)-1
-        info = battlebuild.remove_list[remove_id].remove_info(session)
+        session.remove_list.append(battlebuild.remove_obj('uk', [22], 213, lock_id, 'army', session))
+        print("remove_id: " + str(len(session.remove_list)-1))
+        remove_id = len(session.remove_list)-1
+        info = session.remove_list[remove_id].remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
     if 22 in function.recuit_list('uk', db):
@@ -2136,10 +2137,10 @@ def c216(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     if 21 in function.remove_list('uk', db):
         lock_id = session.add_lock()
-        battlebuild.remove_list.append(battlebuild.remove_obj('uk', [21], 216, lock_id, 'army'))
-        print("remove_id: " + str(len(battlebuild.remove_list)-1))
-        remove_id = len(battlebuild.remove_list)-1
-        info = battlebuild.remove_list[remove_id].remove_info(session)
+        session.remove_list.append(battlebuild.remove_obj('uk', [21], 216, lock_id, 'army', session))
+        print("remove_id: " + str(len(session.remove_list)-1))
+        remove_id = len(session.remove_list)-1
+        info = session.remove_list[remove_id].remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
 
@@ -2148,10 +2149,10 @@ def c217(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     if 12 in function.remove_list('uk', db):
         lock_id = session.add_lock()
-        battlebuild.remove_list.append(battlebuild.remove_obj('uk', [12], 217, lock_id, 'army'))
-        print("remove_id: " + str(len(battlebuild.remove_list)-1))
-        remove_id = len(battlebuild.remove_list)-1
-        info = battlebuild.remove_list[remove_id].remove_info(session)
+        session.remove_list.append(battlebuild.remove_obj('uk', [12], 217, lock_id, 'army', session))
+        print("remove_id: " + str(len(session.remove_list)-1))
+        remove_id = len(session.remove_list)-1
+        info = session.remove_list[remove_id].remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
 
@@ -2235,7 +2236,7 @@ def c227_cb(bot, query, query_list, session):
     #------------------c229----------------------
 def c229_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'uk', 2, db)
+    function.discardhand(bot, 'uk', 2, session)
 
 def c229(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -2296,7 +2297,7 @@ def c238(bot, session):
 c239_used = False
 def c239_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'uk', 2, db)
+    function.discardhand(bot, 'uk', 2, session)
 
 def c239(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -2306,7 +2307,7 @@ def c239(bot, session):
     #------------------c240----------------------
 def c240_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'uk', 2, db)
+    function.discardhand(bot, 'uk', 2, session)
 
 def c240(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -2322,7 +2323,7 @@ def c240(bot, session):
 c241_used = False
 def c241_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'uk', 2, db)
+    function.discardhand(bot, 'uk', 2, session)
 
 def c241(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -2330,9 +2331,9 @@ def c241(bot, session):
     c241_used = True
     
     #------------------c242----------------------
-def c242(bot, session):
+def c242_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'uk', 4, db)
+    function.discardhand(bot, 'uk', 4, session)
 
 def c242(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -2343,7 +2344,7 @@ def c242(bot, handler_id, session):
     #------------------c243----------------------
 def c243_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'uk', 3, db)
+    function.discardhand(bot, 'uk', 3, session)
 
 def c243(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -2356,9 +2357,9 @@ def c243(bot, handler_id, session):
     session.thread_lock(lock_id)
     
     #------------------c244----------------------
-def c244(bot, session):
+def c244_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'uk', 2, db)
+    function.discardhand(bot, 'uk', 2, session)
 
 def c244(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -2367,17 +2368,17 @@ def c244(bot, handler_id, session):
     space_list2 = function.within('Allied', space_list1, 1, db)
     space_list3 = function.control_side_air_space_list('Axis', db, space_type = 'all')
     space_list = list(set(space_list2) & set(space_list3))
-    battlebuild.remove_list.append(battlebuild.remove_obj('uk', space_list, 244, lock_id, 'air'))
-    print("remove_id: " + str(len(battlebuild.remove_list)-1))
-    remove_id = len(battlebuild.remove_list)-1
-    info = battlebuild.remove_list[remove_id].remove_info(session)
+    session.remove_list.append(battlebuild.remove_obj('uk', space_list, 244, lock_id, 'air', session))
+    print("remove_id: " + str(len(session.remove_list)-1))
+    remove_id = len(session.remove_list)-1
+    info = session.remove_list[remove_id].remove_info(session)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
     session.thread_lock(lock_id)
 
     #------------------c245----------------------
 def c245_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'uk', 2, db)
+    function.discardhand(bot, 'uk', 2, session)
 
 def c245(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -2440,10 +2441,10 @@ def c266(bot, session):
         space_list = list(set([20, 24, 28, 30])&set(function.remove_list('su', db, space_type = 'land')))
         if len(space_list) > 0:
             lock_id = session.add_lock()
-            battlebuild.remove_list.append(battlebuild.remove_obj('su', space_list, 266, lock_id, 'army'))
-            print("remove_id: " + str(len(battlebuild.remove_list)-1))
-            remove_id = len(battlebuild.remove_list)-1
-            info = battlebuild.remove_list[remove_id].remove_info(session)
+            session.remove_list.append(battlebuild.remove_obj('su', space_list, 266, lock_id, 'army', session))
+            print("remove_id: " + str(len(session.remove_list)-1))
+            remove_id = len(session.remove_list)-1
+            info = session.remove_list[remove_id].remove_info(session)
             bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
             session.thread_lock(lock_id)
 
@@ -2477,10 +2478,10 @@ def c269(bot, session):
     space_list = list(set([35, 37])&set(function.remove_list('su', db, space_type = 'land')))
     if len(space_list) > 0:
         lock_id = session.add_lock()
-        battlebuild.remove_list.append(battlebuild.remove_obj('su', space_list, 269, lock_id, 'army'))
-        print("remove_id: " + str(len(battlebuild.remove_list)-1))
-        remove_id = len(battlebuild.remove_list)-1
-        info = battlebuild.remove_list[remove_id].remove_info(session)
+        session.remove_list.append(battlebuild.remove_obj('su', space_list, 269, lock_id, 'army', session))
+        print("remove_id: " + str(len(session.remove_list)-1))
+        remove_id = len(session.remove_list)-1
+        info = session.remove_list[remove_id].remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
 
@@ -2499,10 +2500,10 @@ def c271(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     if 22 in function.remove_list('su', db, space_type = 'land'):
         lock_id = session.add_lock()
-        battlebuild.remove_list.append(battlebuild.remove_obj('su', [22], 271, lock_id, 'army'))
-        print("remove_id: " + str(len(battlebuild.remove_list)-1))
-        remove_id = len(battlebuild.remove_list)-1
-        info = battlebuild.remove_list[remove_id].remove_info(session)
+        session.remove_list.append(battlebuild.remove_obj('su', [22], 271, lock_id, 'army', session))
+        print("remove_id: " + str(len(session.remove_list)-1))
+        remove_id = len(session.remove_list)-1
+        info = session.remove_list[remove_id].remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
     country_list = {'su':'Soviet Union','uk':"United Kingdom"}
@@ -2614,7 +2615,7 @@ def c273_cb(bot, query, query_list, session):
     #------------------c275----------------------
 def c275_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'su', 2, db) 
+    function.discardhand(bot, 'su', 2, session)
 
 def c275(bot, session):
     db = sqlite3.connect(session.get_db_dir()) 
@@ -2623,7 +2624,7 @@ def c275(bot, session):
     #------------------c276----------------------
 def c276_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'su', 2, db)
+    function.discardhand(bot, 'su', 2, session)
 
 def c276(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -2638,7 +2639,7 @@ def c276(bot, handler_id, session):
     #------------------c278----------------------
 def c278_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'su', 2, db)
+    function.discardhand(bot, 'su', 2, session)
 
 def c278(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -2693,12 +2694,12 @@ def c282(bot, handler_id, session):
     #------------------c284----------------------
 def c284_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'su', 1, db)
+    function.discarddeck(bot, 'su', 1, session)
 
 def c284(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
     battled_space = session.handler_list[handler_id].space_id
-    if space in function.remove_list('su', db, space_type = 'land'):
+    if battled_space in function.remove_list('su', db, space_type = 'land'):
         piece_list = db.execute("select pieceid from piece where location = :space;", {'space':battled_space}).fetchall()
         for piece in piece_list:
             battlebuild.remove(bot, 'su', piece[0], battled_space, 284, session)
@@ -2735,7 +2736,7 @@ def c287_cb(bot, query, query_list, session):
     db = sqlite3.connect(session.get_db_dir())
     bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
     if query_list[1] == 'd':
-        function.discardhand(bot, session.handler_list[query_list[2]].active_country_id, 3, db)
+        function.discardhand(bot, session.handler_list[query_list[2]].active_country_id, 3, session)
     else:
         info = db.execute("select info_1, info_2 from status_handler where handler_id = :handler_id;", {'handler_id':query_list[2]}).fetchall()
         battlebuild.restore(bot, session.handler_list[query_list[2]].piece_id, session.handler_list[query_list[2]].space_id, session)
@@ -2803,10 +2804,10 @@ def c296(bot, session):
     space_list1 = function.within('Allied', [28], 1, db)
     space_list2 = function.remove_list('su', db, space_type = 'land')
     space_list = list(set(space_list1) & set(space_list2))
-    battlebuild.remove_list.append(battlebuild.remove_obj('su', space_list, 296, lock_id, 'army'))
-    print("remove_id: " + str(len(battlebuild.remove_list)-1))
-    remove_id = len(battlebuild.remove_list)-1
-    info = battlebuild.remove_list[remove_id].remove_info(session)
+    session.remove_list.append(battlebuild.remove_obj('su', space_list, 296, lock_id, 'army', session))
+    print("remove_id: " + str(len(session.remove_list)-1))
+    remove_id = len(session.remove_list)-1
+    info = session.remove_list[remove_id].remove_info(session)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
     session.thread_lock(lock_id)
 
@@ -2820,10 +2821,10 @@ def c297(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     lock_id = session.add_lock()
     space_list = function.control_space_list('su', db, space_type = 'land')
-    battlebuild.self_remove_list.append(battlebuild.self_remove('su', space_list, 297, lock_id, 'army'))
-    print("self_remove_id: " + str(len(battlebuild.self_remove_list)-1))
-    self_remove_id = len(battlebuild.self_remove_list)-1
-    info = battlebuild.self_remove_list[self_remove_id].self_remove_info(session)
+    session.self_remove_list.append(battlebuild.self_remove('su', space_list, 297, lock_id, 'army', session))
+    print("self_remove_id: " + str(len(session.self_remove_list)-1))
+    self_remove_id = len(session.self_remove_list)-1
+    info = session.self_remove_list[self_remove_id].self_remove_info(session)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
     session.thread_lock(lock_id)
     lock_id = session.add_lock()
@@ -2887,7 +2888,7 @@ def c301_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     build_army = db.execute("select min(cardid) from card where name = 'Build Army' and location = 'hand' and control = 'su';").fetchall()
     function.discardcard(bot, build_army[0][0], db)
-    function.discardhand(bot, 'su', 2, db)
+    function.discardhand(bot, 'su', 2, session)
 
 def c301(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -2904,7 +2905,7 @@ def c302_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     build_army = db.execute("select min(cardid) from card where name = 'Build Army' and location = 'hand' and control = 'su';").fetchall()
     function.discardcard(bot, build_army[0][0], db)
-    function.discardhand(bot, 'su', 2, db)
+    function.discardhand(bot, 'su', 2, session)
 
 def c302(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -2912,10 +2913,10 @@ def c302(bot, session):
     space_list2 = function.remove_list('su', db, space_type = 'land')
     space_list = list(set(space_list1) & set(space_list2))
     lock_id = session.add_lock()
-    battlebuild.remove_list.append(battlebuild.remove_obj('su', space_list, 302, lock_id, 'army'))
-    print("remove_id: " + str(len(battlebuild.remove_list)-1))
-    remove_id = len(battlebuild.remove_list)-1
-    info = battlebuild.remove_list[remove_id].remove_info(session)
+    session.remove_list.append(battlebuild.remove_obj('su', space_list, 302, lock_id, 'army', session))
+    print("remove_id: " + str(len(session.remove_list)-1))
+    remove_id = len(session.remove_list)-1
+    info = session.remove_list[remove_id].remove_info(session)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
     session.thread_lock(lock_id)
 
@@ -3073,10 +3074,10 @@ def c328_cb(bot, query, query_list, session):
     elif query_list[2] == 'remove':
         lock_id = session.add_lock()
         space_list = function.control_space_list(query_list[1], db)
-        battlebuild.self_remove_list.append(battlebuild.self_remove(query_list[1], space_list, 328, lock_id, 'air'))
-        print("self_remove_id: " + str(len(battlebuild.self_remove_list)-1))
-        self_remove_id = len(battlebuild.self_remove_list)-1
-        info = battlebuild.self_remove_list[self_remove_id].self_remove_info(session)
+        session.self_remove_list.append(battlebuild.self_remove(query_list[1], space_list, 328, lock_id, 'air', session))
+        print("self_remove_id: " + str(len(session.self_remove_list)-1))
+        self_remove_id = len(session.self_remove_list)-1
+        info = session.self_remove_list[self_remove_id].self_remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
     session.release_lock(query_list[-1])
@@ -3084,7 +3085,7 @@ def c328_cb(bot, query, query_list, session):
     #------------------c329----------------------
 def c329(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    space_list = function.within('Allied', function.control_space_list('us', db, spacetype = 'sea'), 2, db)
+    space_list = function.within('Allied', function.control_space_list('us', db, space_type = 'sea'), 2, db)
     if 38 in space_list:
         function.ewdiscard(bot, 329, 'us', 'jp', 4, session)
         function.add_vp(bot, 'us', 2, db)
@@ -3203,7 +3204,7 @@ def c335(bot, session):
     if db.execute("select count(*) from piece where control in (select id from country where side = 'Allied') and loction = '36';").fecthall()[0][0] > 0:
         lock_id = session.add_lock()
         keyboard = []
-        if not set([35,37]).isdisjoint(set(function.recruit_list('ch', db))):
+        if not set([35,37]).isdisjoint(set(function.recuit_list('ch', db))):
             keyboard.append([InlineKeyboardButton("Recruit a Chinese Army in China or Szechuan", callback_data="['c335', 'r', {}]".format(lock_id))])
         if not set([35,37]).isdisjoint(set(function.remove_list('us', db))):
             keyboard.append([InlineKeyboardButton("Eliminate an Axis Army in China or Szechuan", callback_data="['c335', 'e', {}]".format(lock_id))])
@@ -3219,17 +3220,17 @@ def c335_cb(bot, query, query_list, session):
     bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
     if query_list[1] == 'r':
         lock_id = session.add_lock()
-        space_list = list(set([35,37]) & set(function.recruit_list('ch', db)))
-        info = battlebuild.recruit_info(bot, 'ch', space_list, 335, lock_id, db)
+        space_list = list(set([35,37]) & set(function.recuit_list('ch', db)))
+        info = battlebuild.recuit_info(bot, 'ch', space_list, 335, lock_id, db)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
     elif query_list[1] == 'e':
         lock_id = session.add_lock()
         space_list = list(set([35,37]) & set(function.remove_list('us', db)))
-        battlebuild.remove_list.append(battlebuild.remove_obj('us', space_list, 335, lock_id, 'army'))
-        print("remove_id: " + str(len(battlebuild.remove_list)-1))
-        remove_id = len(battlebuild.remove_list)-1
-        info = battlebuild.remove_list[remove_id].remove_info(session)
+        session.remove_list.append(battlebuild.remove_obj('us', space_list, 335, lock_id, 'army', session))
+        print("remove_id: " + str(len(session.remove_list)-1))
+        remove_id = len(session.remove_list)-1
+        info = session.remove_list[remove_id].remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
     session.release_lock(query_list[-1])
@@ -3282,7 +3283,7 @@ def c336_cb(bot, query, query_list, session):
     if query_list[1] == 2:
         bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
         if query_list[2] == 'confirm':
-            function.discarddeck(bot, 'us', 3, db)
+            function.discarddeck(bot, 'us', 3, session)
             function.movecardtop(bot, 336, db)
         session.release_lock(query_list[-1])
     db.commit()
@@ -3349,7 +3350,7 @@ def c340_info(bot, lock_id, session):
     chat_id = db.execute("select playerid from country where id = 'us';").fetchall()
     text = "Choose a space to build"
     keyboard = [[InlineKeyboardButton(space[1], callback_data="['c340', {}, {}]".format(space[0], lock_id))] for space in name_list]
-    keyboard.append([InlineKeyboardButton('Pass', callback_data="['c340', 'pass', {}, {}]".format(lock_id))])
+    keyboard.append([InlineKeyboardButton('Pass', callback_data="['c340', 'pass', {}]".format(lock_id))])
     reply_markup = InlineKeyboardMarkup(keyboard)
     return chat_id[0][0], text, reply_markup
 
@@ -3474,7 +3475,7 @@ def c343(bot, session):
     #------------------c344----------------------
 def c344_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'us', 1, db)
+    function.discarddeck(bot, 'us', 1, session)
 
 def c344(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -3498,7 +3499,7 @@ def c345(bot, session):
     #------------------c346----------------------
 def c346_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'us', 1, db)
+    function.discarddeck(bot, 'us', 1, session)
 
 def c346(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -3508,12 +3509,12 @@ def c346(bot, handler_id, session):
     #------------------c347----------------------
 def c347(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardhand(bot, 'jp', 1, db)
+    function.discardhand(bot, 'jp', 1, session)
 
     #------------------c348----------------------
 def c348_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'us', 1, db)
+    function.discarddeck(bot, 'us', 1, session)
 
 def c348(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -3527,12 +3528,12 @@ def c348(bot, handler_id, session):
 def c349(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
     passive_country = session.handler_list[handler_id].passive_country_id
-    function.discarddeck(bot, passive_country, 1, db)
+    function.discarddeck(bot, passive_country, 1, session)
     
     #------------------c350----------------------
 def c350_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'us', 3, db)
+    function.discarddeck(bot, 'us', 3, session)
 
 def c350(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -3606,7 +3607,7 @@ def c351_cb(bot, query, query_list, session):
     #------------------c353----------------------
 def c353_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'us', 1, db)
+    function.discarddeck(bot, 'us', 1, session)
 
 def c353(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -3615,7 +3616,7 @@ def c353(bot, session):
     #------------------c354----------------------
 def c354_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'us', 1, db)
+    function.discarddeck(bot, 'us', 1, session)
 
 def c354(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -3631,7 +3632,7 @@ def c354(bot, handler_id, session):
     #------------------c357----------------------
 def c357_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'us', 1, db)
+    function.discarddeck(bot, 'us', 1, session)
 
 def c357(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -3642,7 +3643,7 @@ def c357(bot, session):
     #------------------c362----------------------
 def c362_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'us', 1, db)
+    function.discarddeck(bot, 'us', 1, session)
 
 def c362(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -3658,7 +3659,7 @@ def c362(bot, handler_id, session):
     #------------------c363----------------------
 def c363_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discardew(bot, 'us', 1, db)
+    function.discardew(bot, 'us', 1, session)
 
 def c363(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -3683,24 +3684,26 @@ def c365(bot, session):
     lock_id = session.add_lock()
     hand_list = db.execute("select name, cardid from card where location = 'hand'and type ='Bolster' and control = 'us' order by sequence;").fetchall()
     playerid = db.execute("select playerid from country where id = 'us';").fetchall()
-    keyboard = [[InlineKeyboardButton(hand[0], callback_data="['c365', {}, {}]".format(hand[1], lock_id))] for hand in range(len(hand_list))]
+    keyboard = [[InlineKeyboardButton(hand[0], callback_data="['c365', {}, {}]".format(hand[1], lock_id))] for hand in hand_list]
     reply_markup = InlineKeyboardMarkup(keyboard)
     bot.send_message(chat_id = playerid[0][0], text = "Take a Bolster card from your hand and place it face down on the table:", reply_markup = reply_markup)
+    session.thread_lock(lock_id)
     
 def c365_cb(bot, query, query_list, session):
     db = sqlite3.connect(session.get_db_dir())
     if query_list[1] == 'confirm':
+        bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
         db.execute("update card set location = 'played' where cardid = :card", {'card':query_list[1]})
         db.commit()
         group_chat = db.execute("select chatid from game;").fetchall()
         text = function.countryid2name['us'] + " place a <b>Bolster</b> face down"
         bot.send_message(chat_id = group_chat[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
+        session.release_lock(query_list[-1])
     else:
         if query_list[1] == 'back':
-            hand = db.execute("select name, cardid from card where location = 'hand' and control = 'us' order by sequence;").fetchall()
-            playerid = db.execute("select playerid from country where id = 'us';").fetchall()
+            hand_list = db.execute("select name, cardid from card where location = 'hand' and control = 'us' order by sequence;").fetchall()
             text = "Take a Bolster card from your hand and place it face down on the table:"
-            keyboard = [[InlineKeyboardButton(hand[0], callback_data="['c365', {}, {}]".format(hand[1], query_list[-1]))] for hand in range(len(hand_list))]
+            keyboard = [[InlineKeyboardButton(hand[0], callback_data="['c365', {}, {}]".format(hand[1], query_list[-1]))] for hand in hand_list]
         else:
             selected = db.execute("select name, type, text from card where cardid = :cardid;", {'cardid':query_list[1]}).fetchall()
             text = "<b>" + selected[0][0] + "</b> - " + selected[0][1] + " - " + selected[0][2]
@@ -3712,7 +3715,7 @@ def c365_cb(bot, query, query_list, session):
     #------------------c366----------------------
 def c366_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'us', 2, db)
+    function.discarddeck(bot, 'us', 2, session)
 
 def c366(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -3735,7 +3738,7 @@ def c366_cb(bot, query, query_list, session):
         if query_list[1] == 'back':
             text = "Play a Response from discard pile:"
             discard_list = db.execute("select name, cardid from card where location in ('discardu', 'discardd', 'used') and type = 'Response' and control = 'uk' order by sequence;").fetchall()
-            keyboard = [[InlineKeyboardButton(discard[0], callback_data="['c366', {}, {}]".format(discard[1], lock_id))] for discard in range(len(discard_list))]
+            keyboard = [[InlineKeyboardButton(discard[0], callback_data="['c366', {}, {}]".format(discard[1], query_list[-1]))] for discard in range(len(discard_list))]
         else:
             selected = db.execute("select name, type, text from card where cardid = :cardid;", {'cardid':query_list[1]}).fetchall()
             text = "<b>" + selected[0][0] + "</b> - " + selected[0][1] + " - " + selected[0][2]
@@ -3752,12 +3755,12 @@ def c367(bot, handler_id, session):
     space_list2 = function.control_air_space_list('us', db)
     space_list = list(set(space_list1) & set(space_list2))
     if len(space_list) > 0:
-        function.discarddeck(bot, passive_country, len(space_list), db)
+        function.discarddeck(bot, passive_country, len(space_list), session)
         
     #------------------c368----------------------
 def c368_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'us', 1, db)
+    function.discarddeck(bot, 'us', 1, session)
 
 def c368(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -3772,7 +3775,7 @@ def c368(bot, session):
     #------------------c369----------------------
 def c369_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'us', 1, db)
+    function.discarddeck(bot, 'us', 1, session)
 
 def c369(bot, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -3782,7 +3785,7 @@ def c369(bot, session):
                 [InlineKeyboardButton('Marshal an Air Force', callback_data="['c369', 'm', {}]".format(lock_id))]]
     session.draw_map()
     reply_markup = InlineKeyboardMarkup(keyboard)
-    bot.send_photo(chat_id = chat_id[0][0], caption = "Deploy or marshal an Air Force to a land space adjacent to the Central Pacific", reply_markup = reply_markup, photo=open('pic/tmp.jpg', 'rb'))
+    bot.send_photo(chat_id = chat_id[0][0], caption = "Deploy or marshal an Air Force to a land space adjacent to the Central Pacific", reply_markup = reply_markup, photo=open(session.get_dir() + '/tmp.jpg', 'rb'))
     session.thread_lock(lock_id)
     
 def c369_cb(bot, query, query_list, session):
@@ -3798,10 +3801,10 @@ def c369_cb(bot, query, query_list, session):
     else:
         lock_id = session.add_lock()
         space_list = function.control_air_space_list('us', db)
-        battlebuild.self_remove_list.append(battlebuild.self_remove('us', space_list, None, lock_id, 'air'))
-        print("self_remove_id: " + str(len(battlebuild.self_remove_list)-1))
-        self_remove_id = len(battlebuild.self_remove_list)-1
-        info = battlebuild.self_remove_list[self_remove_id].self_remove_info(session)
+        session.self_remove_list.append(battlebuild.self_remove('us', space_list, None, lock_id, 'air', session))
+        print("self_remove_id: " + str(len(session.self_remove_list)-1))
+        self_remove_id = len(session.self_remove_list)-1
+        info = session.self_remove_list[self_remove_id].self_remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         lock_id = session.add_lock()
         space_list1 = [39, 45, 46, 48]
@@ -3815,7 +3818,7 @@ def c369_cb(bot, query, query_list, session):
     #------------------c370----------------------
 def c370_cost(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    function.discarddeck(bot, 'us', 1, db)
+    function.discarddeck(bot, 'us', 1, session)
 
 def c370(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
@@ -3824,9 +3827,9 @@ def c370(bot, handler_id, session):
     space_list2 = function.remove_list('us', db, space_type = 'land')
     space_list = list(set(space_list1) & set(space_list2))
     lock_id = session.add_lock()
-    battlebuild.remove_list.append(battlebuild.remove_obj('us', space_list, 370, lock_id, 'army'))
-    print("remove_id: " + str(len(battlebuild.remove_list)-1))
-    remove_id = len(battlebuild.remove_list)-1
-    info = battlebuild.remove_list[remove_id].remove_info(session)
+    session.remove_list.append(battlebuild.remove_obj('us', space_list, 370, lock_id, 'army', session))
+    print("remove_id: " + str(len(session.remove_list)-1))
+    remove_id = len(session.remove_list)-1
+    info = session.remove_list[remove_id].remove_info(session)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
     session.thread_lock(lock_id)

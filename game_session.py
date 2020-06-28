@@ -25,6 +25,10 @@ class session:
         self.space_buffer = None
         self.handler_list = []
         self.lock = []
+        self.remove_list = []
+        self.self_remove_list = []
+        self.move_list = []
+        self.message_id = None
         
     def get_session_id(self):
         return self._session_id
@@ -67,7 +71,14 @@ class session:
         os.mkdir(str(self._game_id))
         self._dir = org_dir + '/' + str(self._game_id)
         os.mkdir(self._dir + '/pic')
+        os.mkdir(self._dir + '/1')
         print('Created dir-' + str(self._game_id))
+
+    def create_turn_dir(self):
+        print('Creating turn_dir-' + str(self.turn))
+        self._dir = org_dir + '/' + str(self._game_id)
+        os.mkdir(self._dir + '/' + str(self.turn))
+        print('Created turn_dir-' + str(self.turn))
         
     def create_db(self):
         print('Creating db-' + str(self._game_id))
@@ -77,7 +88,7 @@ class session:
         os.chdir(org_dir)
         self._db = sqlite3.connect(dst)
         db = self._db
-        db.execute("update game set group_chat_id = :group_chat_id;", {'group_chat_id':self._group_chat_id})
+        db.execute("update game set chatid = :group_chat_id;", {'group_chat_id':self._group_chat_id})
         for country in self._player_id_list:
             db.execute("update country set playerid =:id, status = 'filled' where id = :country ;", {'id': self._player_id_list[country], 'country': country})
             if country == 'uk':
@@ -109,6 +120,19 @@ class session:
         os.chdir(self._dir)
         try:
             shutil.copy2('database.db', 'database_backup.db')
+        except Exception as e:
+            print(e)
+            os.chdir(org_dir)
+            return False
+        else:
+            os.chdir(org_dir)
+            return True
+
+    def save_session2(self):
+        org = self._dir + '/database.db'
+        dst = self._dir + '/' + str(self.turn) + '/database_backup.db'
+        try:
+            shutil.copy2(org, dst)
         except Exception as e:
             print(e)
             os.chdir(org_dir)
@@ -182,12 +206,6 @@ class session:
         db = sqlite3.connect(self._db_dir)
         drawmap.drawmap(db, self._dir)
 
-    def create_turn_dir(self):
-        print('Creating turn_dir-' + str(self.turn))
-        self._dir = org_dir + '/' + str(self._game_id)
-        os.mkdir(self._dir + '/' + str(self.turn))
-        print('Created turn_dir-' + str(self.turn))
-
     def add_lock(self):
         self.lock.append(threading.Event())
         print("lock add:" + str(len(self.lock)-1))
@@ -203,28 +221,12 @@ class session:
 
     def clear_lock(self):
         self.lock = []
-        
-
-
-        
-org_dir = os.getcwd()
-session_list = []
-
-game_db = sqlite3.connect('game_session.db')
-active_game_list = game_db.execute("select game_id, group_chat_id from game_session where active = 1;").fetchall()
-for game in active_game_list:
-    new_session = session(game[1])
-    session_list.append(new_session)
-    new_session.set_game_id(game[0])
-    new_session.load_db()
-
 
 
 def get_new_game_id():
     game_db = sqlite3.connect('game_session.db')
     max_game_id = game_db.execute("select MAX(game_id) from game_session;").fetchall()[0][0]
     return max_game_id + 1
-
 
 def get_all_active_player():
     active_player_list = []
@@ -243,3 +245,14 @@ def find_session(group_chat_id):
             return session
     return None
 
+
+org_dir = os.getcwd()
+session_list = []
+
+game_db = sqlite3.connect('game_session.db')
+active_game_list = game_db.execute("select game_id, group_chat_id from game_session where active = 1;").fetchall()
+for game in active_game_list:
+    new_session = session(game[1])
+    session_list.append(new_session)
+    new_session.set_game_id(game[0])
+    new_session.load_db()

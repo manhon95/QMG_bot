@@ -94,10 +94,9 @@ def battle(bot, active_country, piece, space, card_id, session):
 
     
     #------------------------------------------Remove------------------------------------------
-remove_list = []
 class remove_obj():
-    def __init__(self, country, space_list, card_id, lock_id, piece_type):
-        self.remove_id = len(remove_list)
+    def __init__(self, country, space_list, card_id, lock_id, piece_type, session):
+        self.remove_id = len(session.remove_list)
         self.country = country
         self.space_list = space_list
         self.card_id = card_id
@@ -133,11 +132,11 @@ class remove_obj():
             self.piece_id = query_list[2]
             remove(bot, self.country, self.piece_id, self.space_id, self.card_id, session)
             session.release_lock(self.lock_id)
-            remove_list.pop(self.remove_id)
+            session.remove_list.pop(self.remove_id)
         elif query_list[1] == 'pass':
             bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
             session.release_lock(self.lock_id)
-            remove_list.pop(self.remove_id)
+            session.remove_list.pop(self.remove_id)
         else:  
             if query_list[1] == 'back':
                 self.space_id = None
@@ -192,10 +191,9 @@ def remove(bot, active_country, piece, space, card_id, session):
     db.commit()
     
     #------------------------------------------Self_Remove------------------------------------------
-self_remove_list = []
 class self_remove():
-    def __init__(self, country, space_list, card_id, lock_id, piece_type):
-        self.self_remove_id = len(remove_list)
+    def __init__(self, country, space_list, card_id, lock_id, piece_type, session):
+        self.self_remove_id = len(session.self_remove_list)
         self.country = country
         self.space_list = space_list
         self.card_id = card_id
@@ -232,11 +230,11 @@ class self_remove():
             self.piece_id = query_list[2]
             remove(bot, self.country, self.piece_id, self.space_id, self.card_id, session)
             session.release_lock(self.lock_id)
-            self_remove_list.pop(self.self_remove_id)
+            session.self_remove_list.pop(self.self_remove_id)
         elif query_list[1] == 'pass':
             bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
             session.release_lock(self.lock_id)
-            self_remove_list.pop(self.self_remove_id)
+            session.self_remove_list.pop(self.self_remove_id)
         else:  
             if query_list[1] == 'back':
                 self.space_id = None
@@ -262,10 +260,9 @@ class self_remove():
             db.commit()
 
     #------------------------------------------Move------------------------------------------
-move_list = []
-class move():
-    def __init__(self, country, space_list, card_id, lock_id, piece_type):
-        self.move_id = len(move_list)
+class move_obj():
+    def __init__(self, country, space_list, card_id, lock_id, piece_type, session):
+        self.move_id = len(session.move_list)
         self.country = country
         self.space_list = space_list
         self.card_id = card_id
@@ -301,11 +298,11 @@ class move():
             self.piece_id = query_list[3]
             move(bot, self.country, self.piece_id, self.space_id, session)
             session.release_lock(self.lock_id)
-            move_list.pop(self.move_id)
+            session.move_list.pop(self.move_id)
         elif query_list[1] == 'pass':
             bot.delete_message(chat_id = query.message.chat_id, message_id = query.message.message_id)
             session.release_lock(self.lock_id)
-            move_list.pop(self.move_id)
+            session.move_list.pop(self.move_id)
         else:  
             if query_list[1] == 'back':
                 self.space_id = None
@@ -324,7 +321,7 @@ class move():
                     keyboard = [[InlineKeyboardButton('Confirm', callback_data="['move', 'confirm', {}, {}]".format(self.piece_list[0][0], self.move_id))], 
                                 [InlineKeyboardButton('Back', callback_data="['move', 'back', {}]".format(self.move_id))]]              
                 else:
-                    keyboard = [[InlineKeyboardButton(piece[1], callback_data="['move', 'confirm', {}, {}]".format(piece[1], self.move_id))] for piece in piece_list]
+                    keyboard = [[InlineKeyboardButton(piece[1], callback_data="['move', 'confirm', {}, {}]".format(piece[1], self.move_id))] for piece in self.piece_list]
                     keyboard.append([InlineKeyboardButton('Back', callback_data="['move', 'back', {}]".format((self.move_id)))])
                 reply_markup = InlineKeyboardMarkup(keyboard)
             bot.edit_message_text(chat_id=query.message.chat_id, message_id=query.message.message_id, text=text, reply_markup=reply_markup)
@@ -491,9 +488,9 @@ def over_build_handler(bot, active_country, space_type, session):
     if db.execute("select count(*) from piece where location = 'none' and control = :country and type = :piece_type;", {'country':active_country, 'piece_type':function.terrain2type[space_type]}).fetchall()[0][0] == 0:
         lock_id = session.add_lock()
         space_list = function.control_space_list(active_country, db, space_type = space_type)
-        self_remove_list.append(self_remove(active_country, space_list, None, lock_id, function.terrain2type[space_type]))
-        self_remove_id = len(self_remove_list)-1
-        info = self_remove_list[self_remove_id].self_remove_info(session)
+        session.self_remove_list.append(self_remove(active_country, space_list, None, lock_id, function.terrain2type[space_type], session))
+        self_remove_id = len(session.self_remove_list)-1
+        info = session.self_remove_list[self_remove_id].self_remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
     return (db.execute("select count(*) from piece where location = 'none' and control = :country and type = :piece_type;", {'country':active_country, 'piece_type':function.terrain2type[space_type]}).fetchall()[0][0] == 0)

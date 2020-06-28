@@ -70,7 +70,7 @@ def send_status_card(bot, active_country_id, type_, lock_id, session, passive_co
             print('have - response ' + country)
             session.handler_list[handler_id].no_respone[country] = False
             pass_ = False
-            status_message_id = bot.send_photo(chat_id = info[0], caption = info[1], reply_markup = info[2], parse_mode=telegram.ParseMode.HTML, photo=open(org_dir + '/pic/tmp.jpg', 'rb'))
+            status_message_id = bot.send_photo(chat_id = info[0], caption = info[1], reply_markup = info[2], parse_mode=telegram.ParseMode.HTML, photo=open(session.get_dir() + '/tmp.jpg', 'rb'))
             session.handler_list[handler_id].message_id[country] = status_message_id.message_id
     if pass_:
         air.check_reposition(bot, session)
@@ -86,7 +86,7 @@ def send_status_card(bot, active_country_id, type_, lock_id, session, passive_co
                 print('have - response ' + country)
                 session.handler_list[handler_id].no_respone[country] = False
                 pass_ = False
-                status_message_id = bot.send_photo(chat_id = info[0], caption = info[1], reply_markup = info[2], parse_mode=telegram.ParseMode.HTML, photo=open(org_dir + '/pic/tmp.jpg', 'rb'))
+                status_message_id = bot.send_photo(chat_id = info[0], caption = info[1], reply_markup = info[2], parse_mode=telegram.ParseMode.HTML, photo=open(session.get_dir() + '/tmp.jpg', 'rb'))
                 print(country + ' add status_message_id:' + str(status_message_id.message_id))
                 session.handler_list[handler_id].message_id[country] = status_message_id.message_id
         if pass_:
@@ -197,7 +197,7 @@ def send_status_card_cb(bot, query, query_list, session):
                 session.handler_list[handler_id].no_respone[country] = False
                 pass_ = False
                 if message_id == None:
-                    status_message_id = bot.send_photo(chat_id = info[0], caption = info[1], reply_markup = info[2], parse_mode=telegram.ParseMode.HTML, photo=open(org_dir + '/pic/tmp.jpg', 'rb'))
+                    status_message_id = bot.send_photo(chat_id = info[0], caption = info[1], reply_markup = info[2], parse_mode=telegram.ParseMode.HTML, photo=open(session.get_dir() + '/tmp.jpg', 'rb'))
                     session.handler_list[handler_id].message_id[country] = status_message_id.message_id
                 else:
                     bot.edit_message_caption(chat_id = info[0], message_id = message_id, caption = info[1], reply_markup = info[2], parse_mode=telegram.ParseMode.HTML)
@@ -223,7 +223,7 @@ def send_status_card_cb(bot, query, query_list, session):
                     session.handler_list[handler_id].no_respone[country] = False
                     pass_ = False
                     if message_id == None:
-                        status_message_id = bot.send_photo(chat_id = info[0], caption = info[1], reply_markup = info[2], parse_mode=telegram.ParseMode.HTML, photo=open(org_dir + '/pic/tmp.jpg', 'rb'))
+                        status_message_id = bot.send_photo(chat_id = info[0], caption = info[1], reply_markup = info[2], parse_mode=telegram.ParseMode.HTML, photo=open(session.get_dir() + '/tmp.jpg', 'rb'))
                         session.handler_list[handler_id].message_id[country] = status_message_id.message_id
                     else:
                         bot.edit_message_caption(chat_id = info[0], message_id = message_id, caption = info[1], reply_markup = info[2], parse_mode=telegram.ParseMode.HTML)
@@ -1285,7 +1285,7 @@ def status_ew_handler(bot, cardid, active_country, passive_country, session):
 def status_ew_handler_info(country, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
     print('in status_ew_handler_info - ' + country)
-    s = {'ge': [61, 67], 'jp':[123], 'it':[171, 179], 'uk':[], 'su':[], 'us':[367], 'fr':[], 'ch':[]}
+    s = {'ge': [61, 67], 'jp':[123], 'it':[171, 174, 179], 'uk':[], 'su':[], 'us':[367], 'fr':[], 'ch':[]}
     chat_id = db.execute("select playerid from country where id = :id;",{'id':country}).fetchall()
     passive_country = session.handler_list[handler_id].passive_country_id
     active_country = session.handler_list[handler_id].active_country_id
@@ -1304,10 +1304,12 @@ def status_ew_handler_info(country, handler_id, session):
                 if card[0] == 67 and active_country == 'ge':
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_ew', '{}', {}, {}]".format(country, handler_id, card[0]))])
             if country == 'jp':
-                if card[0] == 123 and passive_country == 'jp' and 38 in function.control_air_space('jp', db):
+                if card[0] == 123 and passive_country == 'jp' and 38 in function.control_air_space_list('jp', db):
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_ew', '{}', {}, {}]".format(country, handler_id, card[0]))])
             if country == 'it':
                 if card[0] == 171 and passive_country == 'it' and 'Bomb' in card_name[0][0]:
+                    keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_ew', '{}', {}, {}]".format(country, handler_id, card[0]))])
+                if card[0] == 174 and active_country == 'ge' and 'Submarine' in card_name[0][0]:
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_ew', '{}', {}, {}]".format(country, handler_id, card[0]))])
                 if card[0] == 179 and passive_country == 'it':
                     if air_count > 0:

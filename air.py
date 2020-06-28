@@ -129,9 +129,9 @@ def over_deploy_handler(bot, active_country, session):
     if db.execute("select count(*) from piece where location = 'none' and control = :country and type = 'air';", {'country':active_country}).fetchall()[0][0] == 0:
         lock_id = session.add_lock()
         space_list = function.control_air_space_list(active_country, db)
-        battlebuild.self_remove_list.append(battlebuild.self_remove(active_country, space_list, None, lock_id, 'air'))
-        self_remove_id = len(battlebuild.self_remove_list)-1
-        info = battlebuild.self_remove_list[self_remove_id].self_remove_info(session)
+        session.self_remove_list.append(battlebuild.self_remove(active_country, space_list, None, lock_id, 'air', session))
+        self_remove_id = len(session.self_remove_list)-1
+        info = session.self_remove_list[self_remove_id].self_remove_info(session)
         bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
         session.thread_lock(lock_id)
     return (db.execute("select count(*) from piece where location = 'none' and control = :country and type = 'air';", {'country':active_country}).fetchall()[0][0] == 0)

@@ -89,7 +89,7 @@ def shufflediscard(bot, country, db):
     text = "<b>" + countryid2name[country] + "</b> shuffle his deck"
     bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
     discard = db.execute("select cardid from card where ((location in ('discardd', 'discardu')) or (location = 'played' and type not in ('Status', 'Response', 'Bolster')) or (location = 'used' and type in ('Response', 'Bolster'))) and control =:country;", {'country':country}).fetchall()
-    ransq = [x for x in range(1, len(cardid)+1)]
+    ransq = [x for x in range(1, len(discard)+1)]
     random.shuffle(ransq)
     for i in range (len(discard)):
         db.execute('update card set sequence =:sq where cardid =:id and control =:country;', {'sq': ransq[i], 'id': discard[i][0], 'country':country})
@@ -147,7 +147,8 @@ def movecardhand(bot, cardid, db):
     db.commit()
     
     #------------------------------------------Discard Hand------------------------------------------
-def discardhand(bot, country, number, db):
+def discardhand(bot, country, number, session):
+    db = sqlite3.connect(session.get_db_dir())
     hand_list = db.execute("select cardid, name, type, text from card where location = 'hand' and control =:country order by sequence;", {'country':country}).fetchall()
     group_chat_id = db.execute("select chatid from game;").fetchall()
     if len(hand_list) <= number:
@@ -171,7 +172,8 @@ def discardhand(bot, country, number, db):
         bot.send_message(chat_id = chat_id[0][0], text = text, reply_markup = reply_markup, parse_mode=telegram.ParseMode.HTML)
         session.thread_lock(lock_id)
     
-def discardhand_cb(bot, query, query_list, db):
+def discardhand_cb(bot, query, query_list, session):
+    db = sqlite3.connect(session.get_db_dir())
     if query_list[2] == 'confirm':
         selected = db.execute("select name, sequence from card where location = 'selected' and control =:country order by sequence;", {'country':query_list[1]}).fetchall()
         db.execute("update card set location = 'discardd' where location = 'selected' and control =:country;", {'country':query_list[1]})
@@ -209,7 +211,8 @@ def discardhand_cb(bot, query, query_list, db):
         db.commit()
         db.close()
 
-def discardhand_no_deck(bot, country, number, db):
+def discardhand_no_deck(bot, country, number, session):
+    db = sqlite3.connect(session.get_db_dir())
     hand_list = db.execute("select cardid, name, type, text from card where location = 'hand' and control =:country order by sequence;", {'country':country}).fetchall()
     group_chat_id = db.execute("select chatid from game;").fetchall()
     if len(hand_list) <= number:
@@ -233,7 +236,8 @@ def discardhand_no_deck(bot, country, number, db):
         bot.send_message(chat_id = chat_id[0][0], text = text, reply_markup = reply_markup, parse_mode=telegram.ParseMode.HTML)
         session.thread_lock(lock_id)
     
-def discardhand_no_deck_cb(bot, query, query_list, db):
+def discardhand_no_deck_cb(bot, query, query_list, session):
+    db = sqlite3.connect(session.get_db_dir())
     if query_list[2] == 'confirm':
         selected = db.execute("select name, sequence from card where location = 'selected' and control =:country order by sequence;", {'country':query_list[1]}).fetchall()
         db.execute("update card set location = 'discardd' where location = 'selected' and control =:country;", {'country':query_list[1]})
@@ -272,7 +276,8 @@ def discardhand_no_deck_cb(bot, query, query_list, db):
         db.close()
 
     #------------------------------------------Discard Response------------------------------------------
-def discardresponse(bot, country, number, db):
+def discardresponse(bot, country, number, session):
+    db = sqlite3.connect(session.get_db_dir())
     response_list = db.execute("select cardid, name, type, text from card where location = 'hand' and type = 'Response' and control =:country order by sequence;", {'country':country}).fetchall()
     group_chat_id = db.execute("select chatid from game;").fetchall()
     if len(response_list) != 0:
@@ -288,7 +293,8 @@ def discardresponse(bot, country, number, db):
         bot.send_message(chat_id = chat_id[0][0], text = text, reply_markup = reply_markup, parse_mode=telegram.ParseMode.HTML)
         session.thread_lock(lock_id)
     
-def discardresponse_cb(bot, query, query_list, db):
+def discardresponse_cb(bot, query, query_list, session):
+    db = sqlite3.connect(session.get_db_dir())
     if query_list[2] == 'confirm':
         selected = db.execute("select name, sequence from card where location = 'selected' and control =:country order by sequence;", {'country':query_list[1]}).fetchall()
         db.execute("update card set location = 'discardd' where location = 'selected' and control =:country;", {'country':query_list[1]})
@@ -327,7 +333,8 @@ def discardresponse_cb(bot, query, query_list, db):
         db.close()
 
     #------------------------------------------Discard EW------------------------------------------
-def discardew(bot, country, number, db):
+def discardew(bot, country, number, session):
+    db = sqlite3.connect(session.get_db_dir())
     response_list = db.execute("select cardid, name, type, text from card where location = 'hand' and type = 'Economic Warfare' and control =:country order by sequence;", {'country':country}).fetchall()
     group_chat_id = db.execute("select chatid from game;").fetchall()
     if len(response_list) != 0:
@@ -343,7 +350,8 @@ def discardew(bot, country, number, db):
         bot.send_message(chat_id = chat_id[0][0], text = text, reply_markup = reply_markup, parse_mode=telegram.ParseMode.HTML)
         session.thread_lock(lock_id)
     
-def discardew_cb(bot, query, query_list, db):
+def discardew_cb(bot, query, query_list, session):
+    db = sqlite3.connect(session.get_db_dir())
     if query_list[2] == 'confirm':
         selected = db.execute("select name, sequence from card where location = 'selected' and control =:country order by sequence;", {'country':query_list[1]}).fetchall()
         db.execute("update card set location = 'discardd' where location = 'selected' and control =:country;", {'country':query_list[1]})
@@ -391,18 +399,19 @@ def ewdiscard(bot, cardid, active_country, passive_country, number, session):   
     number += extra_number
     if number > 0:
         import cardfunction
+        card_name = db.execute("select name from card where cardid = :cardid;", {'cardid':cardid}).fetchall()
         if cardfunction.c171_used or cardfunction.c179_used:
             cardfunction.c171_used = False
             cardfunction.c179_used = False
             text = "<b>" + card_name[0][0] + "</b> ignored"
             bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
         else:
-            card_name = db.execute("select name from card where cardid = :cardid;", {'cardid':cardid}).fetchall()
             text = "<b>" + countryid2name[passive_country]  + "</b> is attacked by " + card_name[0][0]
             bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
-            discarddeck(bot, passive_country, number, db)
+            discarddeck(bot, passive_country, number, session)
         
-def discarddeck(bot, country, number, db):
+def discarddeck(bot, country, number, session):
+    db = sqlite3.connect(session.get_db_dir())
     cardcount = db.execute("select count(*) from card where location = 'deck' and control =:country;", {'country':country}).fetchall()
     group_chat_id = db.execute("select chatid from game;").fetchall()
     text = "<b>" + countryid2name[country] + "</b> discarded " + str(number) + " card(s) from his deck"
@@ -413,7 +422,7 @@ def discarddeck(bot, country, number, db):
         text = "<b>" + countryid2name[country] + "</b> finished his deck"
         bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
         short = number - cardcount[0][0]
-        discardhand_no_deck(bot, country, short, db)
+        discardhand_no_deck(bot, country, short, session)
     else:
         db.execute("update card set location = 'discardd' where location = 'deck' and sequence <= :number and control =:country;", {'number':number, 'country':country})
         for j in range (1, cardcount[0][0] - number + 1):
