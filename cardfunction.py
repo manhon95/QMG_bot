@@ -380,7 +380,7 @@ def c29(bot, session):
 def c30(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     lock_id = session.add_lock()
-    info = c30_info(bot, lock_id, db)
+    info = c30_info(bot, lock_id, session)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
     if info[2] != None:
         session.thread_lock(lock_id)
@@ -947,10 +947,10 @@ def c64(bot, handler_id, session):
     space_list1 = function.within('Axis', [marshalled_space], 1, db)
     space_list2 = function.control_side_air_space_list('Allied', db, space_type = 'all')
     space_list = list(set(space_list1) & set(space_list2))
-    session.self_remove_list.append(battlebuild.self_remove('ge', space_list, 64, lock_id, 'air', session))
-    print("self_remove_id: " + str(len(session.self_remove_list)-1))
-    self_remove_id = len(session.self_remove_list)-1
-    info = session.self_remove_list[self_remove_id].self_remove_info(session)
+    session.remove_list.append(battlebuild.remove_obj('ge', space_list, 64, lock_id, 'air', session))
+    print("remove_id: " + str(len(session.remove_list)-1))
+    remove_id = len(session.remove_list)-1
+    info = session.remove_list[self_remove_id].remove_info(session)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
     lock_id = session.add_lock()
 
@@ -1316,7 +1316,6 @@ def c120_cost(bot, session):
 def c120(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
     battlebuild.restore(bot, session.handler_list[handler_id].piece_id, session.handler_list[handler_id].space_id, session)
-    db.execute("update piece set noremove = 1 where pieceid = :piece", {'piece':session.handler_list[handler_id].piece_id})
     db.commit()
 
     #------------------c121---------------------- 
@@ -1387,10 +1386,10 @@ def c126(bot, handler_id, session):
     space_list1 = function.within('Axis', [marshalled_space], 1, db)
     space_list2 = function.control_side_air_space_list('Allied', db, space_type = 'all')
     space_list = list(set(space_list1) & set(space_list2))
-    session.self_remove_list.append(battlebuild.self_remove('jp', space_list, 126, lock_id, 'air', session))
-    print("self_remove_id: " + str(len(session.self_remove_list)-1))
-    self_remove_id = len(session.self_remove_list)-1
-    info = session.self_remove_list[self_remove_id].self_remove_info(session)
+    session.remove_list.append(battlebuild.remove_obj('jp', space_list, 126, lock_id, 'air', session))
+    print("remove_id: " + str(len(session.remove_list)-1))
+    remove_id = len(session.remove_list)-1
+    info = session.remove_list[remove_id].remove_info(session)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
     session.thread_lock(lock_id)
     
@@ -1618,7 +1617,7 @@ def c154(bot, session):
     #------------------c155----------------------
 def c155(bot, session):
     db = sqlite3.connect(session.get_db_dir())
-    piece = db.execute("select count(*) from piece where control = 'it' and location not in ('none', '17');").fetchall()
+    piece = db.execute("select count(*) from piece where control = 'it' and location not in ('none', '17') and type != 'air'").fetchall()
     function.add_vp(bot, 'it', piece[0][0], db)
 
     #------------------c156----------------------
@@ -1681,7 +1680,6 @@ def c161(bot, session):
 def c167(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
     battlebuild.restore(bot, session.handler_list[handler_id].piece_id, session.handler_list[handler_id].space_id, session)
-    db.execute("update piece set noremove = 1 where pieceid = :piece", {'piece':session.handler_list[handler_id].piece_id})
     db.commit()
     
     #------------------c168----------------------
@@ -3682,7 +3680,7 @@ def c364(bot, session):
 def c365(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     lock_id = session.add_lock()
-    hand_list = db.execute("select name, cardid from card where location = 'hand'and type ='Bolster' and control = 'us' order by sequence;").fetchall()
+    hand_list = db.execute("select name, cardid from card where location = 'hand' and type ='Bolster' and control = 'us' order by sequence;").fetchall()
     playerid = db.execute("select playerid from country where id = 'us';").fetchall()
     keyboard = [[InlineKeyboardButton(hand[0], callback_data="['c365', {}, {}]".format(hand[1], lock_id))] for hand in hand_list]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -3693,7 +3691,7 @@ def c365_cb(bot, query, query_list, session):
     db = sqlite3.connect(session.get_db_dir())
     if query_list[1] == 'confirm':
         bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
-        db.execute("update card set location = 'played' where cardid = :card", {'card':query_list[1]})
+        db.execute("update card set location = 'played' where cardid = :card", {'card':query_list[2]})
         db.commit()
         group_chat = db.execute("select chatid from game;").fetchall()
         text = function.countryid2name['us'] + " place a <b>Bolster</b> face down"

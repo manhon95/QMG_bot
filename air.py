@@ -157,7 +157,8 @@ def reposition_info(country, space_id, piece_id, lock_id, session):
     side = function.getside[country]
     space_list1 = function.within(side, [space_id], 1, db)
     space_list2 = function.control_supplied_space_list(country, db)
-    space_list = list(set(space_list1) & set(space_list2))
+    space_list3 = function.control_air_space_list(country, db)
+    space_list = list((set(space_list1) & set(space_list2)) - set(space_list3))
     if len(space_list) > 0:
         print(space_list) 
         name_list = function.get_name_list(space_list, db)
@@ -207,7 +208,6 @@ def reposition(bot, active_country, space_id, piece_id, db):
     
     
     #------------------------------------------Air Defense------------------------------------------
-    #TODO remove air
 def air_defense(bot, handler_id, session):
     db = sqlite3.connect(session.get_db_dir())
     session.handler_list[handler_id].air_defense = True
@@ -219,7 +219,6 @@ def air_defense(bot, handler_id, session):
     battlebuild.restore(bot, session.handler_list[handler_id].piece_id, session.handler_list[handler_id].space_id, session)
     
     #------------------------------------------Air Attack------------------------------------------
-    #TODO remove air
 air_attack_list = []
 class air_attack():
     def __init__(self, handler_id, lock_id, session):

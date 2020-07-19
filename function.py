@@ -154,6 +154,7 @@ def discardhand(bot, country, number, session):
     if len(hand_list) <= number:
         if len(hand_list) != 0:
             db.execute("update card set location = 'discardd' where location = 'hand' and control =:country;", {'country':country})
+            db.commit()
         text = "<b>" + countryid2name[country] + "</b> finished his hand"
         bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
         if len(hand_list) < number:
@@ -218,6 +219,7 @@ def discardhand_no_deck(bot, country, number, session):
     if len(hand_list) <= number:
         if len(hand_list) != 0:
             db.execute("update card set location = 'discardd' where location = 'hand' and control =:country;", {'country':country})
+            db.commit()
         text = "<b>" + countryid2name[country] + "</b> finished his hand"
         bot.send_message(chat_id = group_chat_id[0][0], text = text, parse_mode=telegram.ParseMode.HTML)
         if len(hand_list) < number:
@@ -480,11 +482,11 @@ def deduct_vp(bot, country, vp, db):
     #------------------------------------------Can Build------------------------------------------
 def can_build(country, space, db):
     space_list = within(getside[country], control_supplied_space_list(country, db), 1, db)
-    xspace = db.execute("select distinct location from piece where control in (select id from country where id = :country or side = (select enemy from country where id = :country)) and location != 'none';", {'country':country}).fetchall()
+    xspace = db.execute("select distinct location from piece where control in (select id from country where id = :country or side = (select enemy from country where id = :country)) and location != 'none' and type != 'air';", {'country':country}).fetchall()
     xspace_list = [eval(s[0]) for s in xspace]
     return (space not in xspace_list and space in space_list)
 
-def build_list(country, db, space_type = 'all'):
+def build_list(country, db, space_type = 'all'): 
     axis_list = ['ge', 'jp', 'it']
     allies_list = ['uk', 'su', 'us']
     space_list = within(getside[country], control_supplied_space_list(country, db), 1, db)
@@ -493,7 +495,7 @@ def build_list(country, db, space_type = 'all'):
     extra_list = status_handler.status_build_location(country, db)
     if extra_list != None:
         space_list += extra_list
-    xspace = db.execute("select distinct location from piece where control in (select id from country where id = :country or side = (select enemy from country where id = :country)) and location != 'none';", {'country':country}).fetchall()
+    xspace = db.execute("select distinct location from piece where control in (select id from country where id = :country or side = (select enemy from country where id = :country)) and location != 'none' and type != 'air';", {'country':country}).fetchall()
     xspace_list = [eval(s[0]) for s in xspace]
     space_list = list(set(space_list) - set(xspace_list))
     space_list2 =[]
@@ -516,14 +518,14 @@ def build_list(country, db, space_type = 'all'):
 
     #------------------------------------------Can Recuit------------------------------------------
 def can_recuit(country, space, db):
-    xspace = db.execute("select distinct location from piece where control in (select id from country where id = :country or side = (select enemy from country where id = :country)) and location != 'none';", {'country':country}).fetchall()
+    xspace = db.execute("select distinct location from piece where control in (select id from country where id = :country or side = (select enemy from country where id = :country)) and location != 'none' and type != 'air';", {'country':country}).fetchall()
     xspace_list = [eval(s[0]) for s in xspace]
     return space not in xspace_list
 
 def recuit_list(country, db, space_type = 'all'):
     space =  db.execute("select distinct spaceid from space;").fetchall()
     space_list = [s[0] for s in space]
-    xspace = db.execute("select distinct location from piece where control in (select id from country where id = :country or side = (select enemy from country where id = :country)) and location != 'none';", {'country':country}).fetchall()
+    xspace = db.execute("select distinct location from piece where control in (select id from country where id = :country or side = (select enemy from country where id = :country)) and location != 'none' and type != 'air';", {'country':country}).fetchall()
     xspace_list = [eval(s[0]) for s in xspace]
     space_list = list(set(space_list) - set(xspace_list))
     questionmarks = '?' * len(space_list)
@@ -538,7 +540,7 @@ def recuit_list(country, db, space_type = 'all'):
     #------------------------------------------Can Battle------------------------------------------
 def can_battle(country, space, db):
     space_list = within(getside[country], control_supplied_space_list(country, db), 1, db)
-    xspace = db.execute("select distinct location from piece where control in (select id from country where side = (select side from country where id = :country)) and location != 'none';", {'country':country}).fetchall()
+    xspace = db.execute("select distinct location from piece where control in (select id from country where side = (select side from country where id = :country)) and location != 'none' and type != 'air';", {'country':country}).fetchall()
     xspace_list = [eval(s[0]) for s in xspace]
     return (space not in xspace_list and space in space_list)
 
@@ -547,7 +549,7 @@ def battle_list(country, db, space_type = 'all'):
     extra_list = status_handler.status_battle_location(country, db)
     if extra_list != None:
         space_list += extra_list
-    xspace = db.execute("select distinct location from piece where control in (select id from country where side = (select side from country where id = :country)) and location != 'none';", {'country':country}).fetchall()
+    xspace = db.execute("select distinct location from piece where control in (select id from country where side = (select side from country where id = :country)) and location != 'none' and type != 'air';", {'country':country}).fetchall()
     xspace_list = [eval(s[0]) for s in xspace]
     space_list = list(set(space_list) - set(xspace_list))
     questionmarks = '?' * len(space_list)
@@ -561,12 +563,12 @@ def battle_list(country, db, space_type = 'all'):
 
     #------------------------------------------Can Remove------------------------------------------
 def can_remove(country, space, db):
-    xspace = db.execute("select distinct location from piece where control in (select id from country where side = (select side from country where id = :country)) and location != 'none';", {'country':country}).fetchall()
+    xspace = db.execute("select distinct location from piece where control in (select id from country where side = (select side from country where id = :country)) and location != 'none' and type != 'air';", {'country':country}).fetchall()
     xspace_list = [eval(s[0]) for s in xspace]
     return space not in xspace_list
 
 def remove_list(country, db, space_type = 'all'):
-    space = db.execute("select distinct location from piece where control in (select id from country where side = (select enemy from country where id = :country)) and location != 'none';", {'country':country}).fetchall()
+    space = db.execute("select distinct location from piece where control in (select id from country where side = (select enemy from country where id = :country)) and location != 'none' and type != 'air';", {'country':country}).fetchall()
     space_list = [eval(s[0]) for s in space]
     questionmarks = '?' * len(space_list)
     if space_type == 'land':
@@ -675,6 +677,8 @@ def control_supplied_space_list(country, db, space_type = 'all'):
     else:
         control = db.execute("select location from piece where supply = 1 and location != 'none' and type != 'air' and control = :country;", {'country':country}).fetchall()
     control_list = [eval(space[0]) for space in control]
+    print('---control_supplied_space_list---')
+    print(control_list)
     return control_list
 
 def control_vp_space_list(country, db):
@@ -806,6 +810,8 @@ def update_allies_pt(db):
     #------------------------------------------Supplied list------------------------------------------
 def supplied_space_list(country, db, space_type = 'all'):
     supplied_space_list = list(set(control_supplied_space_list(country, db, space_type = space_type)).union(set(build_list(country, db, space_type = space_type))))
+    print('---supplied_space_list---')
+    print(supplied_space_list)
     return supplied_space_list
 
 

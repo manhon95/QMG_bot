@@ -1,0 +1,374 @@
+[Setup]
+Each country starts off with one of its Armies in its Home
+Space. Each country begins 
+the game by drawing 12 cards from that country’s deck and 
+discarding 5 cards to create an opening hand of 7 cards.
+
+[Turn Sequence]
+1. Play Step: 
+Play one card. 
+2. Air Force Step: 
+Deploy or Marshal an Air Force when using the Air Marshal expansion (Optional).
+3. Supply Step: 
+Remove your out-of-supply pieces from the board.
+4. Victory Step: 
+Collect Victory Points.* 
+5. Discard Step: 
+Discard any number of cards from your hand. Deduct 1 Victory Point if you do not discard a card. 
+6. Draw Step: 
+Draw until your hand has seven cards.** 
+
+*Skip this step if your Home Space is occupied by an enemy Army. 
+**Response and Status cards on the table are not in your hand.
+
+[Map clarification]
+Spaces that meet at exactly one point are not considered adjacent. 
+Specifically, the Middle East and the Balkans are not adjacent, and Black Sea and Mediterranean are not adjacent.
+
+[Straits]
+A strait is indicated on the game board with an anchor icon. 
+The anchor appears on the land space that allows control of the strait, and the arrows indicate which two bodies of water are connected by the strait. 
+If the Strait is open, then the two Sea spaces are considered adjacent; otherwise, the spaces are not considered adjacent. 
+• Straits are only open to one team at a time.
+• A Strait is open to the Allies if no Axis Army occupies the Land space that controls the strait.
+• A Strait is open to the Axis if an Axis Army occupies the Land space that controls the strait.
+
+[Order of Play]
+A game can last up to 20 rounds. Every round, each country takes a turn in the following order 
+1. Germany 
+2. United Kingdom 
+3. Japan 
+4. Soviet Union 
+5. Italy 
+6. United States 
+
+[Pieces]
+Each country may only have one piece per space, although
+different countries on the same team may each have a piece in
+a space. Pieces from countries on different teams may never
+occupy the same space. Navies may only occupy Sea spaces;
+Armies may only occupy Land
+spaces.
+A country receives a fixed
+number of pieces for the game;
+if all are in play, no more are
+available to be recruited or
+built. Pieces removed from the board for any reason become
+available; at any time you may remove your own piece from the
+board to make the piece available, but you cannot be compelled
+to remove a piece by a teammate. 
+
+[Supply]
+At any moment, a piece is either supplied or out-of-supply.
+Armies and Navies must trace a line of its own country’s
+Armies and/or Navies to a Supply Space. You cannot use another country’s pieces to trace supply.
+Navies have an additional requirement, beyond tracing a line
+of their own country’s pieces; Navies must be adjacent to a
+land space occupied by an Army from any country on the same
+team. This Army does NOT need to be in supply.
+During the Supply step of a country’s turn, that country’s outof-supply pieces are removed. Pieces of other countries are not
+affected.
+Supply Space markers
+There are two Supply Space markers, one
+for Canada (United Kingdom) and one for
+Szechuan (United States). These markers are
+placed when certain Status cards are played,
+and serve as a reminder that these spaces
+are Supply Spaces for those Allied countries.
+
+[Cards]
+Each country has a separate draw deck of cards, hand of cards,
+a discard pile, and (perhaps) face-down Response cards and
+face-up Status cards on the table.
+If your draw deck is depleted, you no longer draw cards but
+otherwise continue playing. Likewise, if your hand and deck
+are depleted, you continue playing to collect Victory Points and
+check supply.
+If a card directs you to discard cards from your draw deck but
+your draw deck is depleted, the cards are discarded from your
+hand. (This may be a result from an enemy card or from the
+use of your own card.) Likewise, if a card directs you to discard
+from your hand but your hand is empty, you must discard the
+top card(s) of your draw deck instead.
+If both your hand and draw deck is depleted, your team loses 1 Victory Point for each card you were unable to discard. 
+
+Card types
+Build Army: Put one of your available
+Armies in a Land space adjacent to your own
+supplied piece. In addition, you can always
+build an Army in a country’s own Home
+Space. Remember however, at no time may a
+country have two Armies in the same space,
+and at no time can pieces from enemy teams
+occupy the same space.
+Build Navy: Put one of your available Navies
+in a Sea space adjacent to your own supplied
+piece. A newly built Navy must be in supply.
+Again, at no time may a country have two
+Navies in the same space, and at no time can
+pieces from enemy teams occupy the same
+space.
+Land Battle: Select an enemy Army adjacent
+to one of your own supplied Army or Navy
+pieces and remove it from the board.
+Sea Battle: Select an enemy Navy adjacent
+to one of your own supplied Army or Navy
+pieces and remove it from the board.
+Event: The text on Event cards specify what
+will happen when it is played.
+Status: These cards are played face-up on
+the table. The text on a Status card indicates
+when it may be used and what it does. Playing
+a Status card to the table is your Play step
+for that turn; you cannot play a Status card
+and another card (unless the card text says
+otherwise). You are never forced to use your
+own Status cards. Status cards stay on the table and are potentially useful throughout the
+game unless discarded by another card.
+Response: These cards are played face-down
+on the table. Playing a Response card to the
+table is your Play step for that turn. The
+game text on a Response card indicates when
+it may be used and what it does. When you
+want to use it, reveal it to the other players. A
+Response card is discarded after one use. You
+may use a Response card on the same turn as
+it is played.
+Economic Warfare: These cards generally
+allow a player to discard opponents’ cards.
+Remember, if an opponent runs out of
+cards, their team must lose Victory Points
+instead! There is no requirement that an
+opponent still occupy their own Home
+Space for Economic Warfare cards to work
+against them.
+Bolster Cards
+Bolster cards may be used directly from hand as reactions; the trigger for the reaction is specified on the card itself. Once used, Bolster
+cards are discarded. Bolster cards are not
+used as the card “played” during your play
+step (although they may be triggered during
+the play step). Like Deploy Air Force cards,
+Bolster cards may be discarded for no effect
+to satisfy the requirement that one card be
+played each play step.
+Many Bolster cards can be used out of turn; this means you may
+have fewer than seven cards in hand when beginning your turn.
+Use of a Bolster card is always optional.
+Many Bolster cards specify that you must discard one or more
+cards from your hand or draw deck. These cards are discarded
+in addition to the Bolster card, unless the card text indicates
+otherwise.
+
+[Card play]
+On the Play step of your turn you MUST play (or discard) a
+card, even if it cannot be of any use, unless you have no more
+cards to play. There are certain situations where you cannot
+or would not want to take advantage of a card; in this case you
+can just discard it with no effect; you can always discard a
+card, regardless of the prerequisites.
+If a card has two or more actions, these actions are performed
+in the order presented on the card. When a card specifies that
+several actions occur in a sequence, each follows the next. For
+example, if a card allows you to build two Armies, the second
+Army could trace supply through the first. Each action is resolved one at a time (although the entire card text is known to
+all, once revealed).
+One benefit is not (typically) a prerequisite for
+another. For example, Tito’s Partisans allows the
+Soviets to eliminate an Axis Army in the Balkans
+and then recruit a Soviet or United Kingdom
+Army in the Balkans. If the space was unoccupied
+when the card was played, the Soviets could still
+recruit an Army in the Balkans.
+Some cards specifically direct you to build or
+recruit a teammate’s piece; this is not a misprint!
+However, unless the card indicates another country, a card
+always refers to the pieces and cards of its own country.
+Using Status and Response cards during play
+The text on Status and Response cards indicates under what
+condition(s) the cards can be used. Status and Response cards
+must be played onto the table during Play step of your turn
+before being used – they can’t be used directly from your hand.
+Playing a Status or Response card to the table is your Play step
+for the turn. Once on the table the card is available to be used whenever conditions permit.
+Use or applicability of Status or Response cards
+is always at the discretion of the country of the
+card, not necessarily the country that is affected.
+For example, the RAF Response card could prevent a United States Navy from being removed.
+Whenever you play a card that creates a situation
+that could cause one or more opponents to play
+a Status or Response card, both teams take turns using their
+Status and Response cards, starting with the opposing team.
+A team may use one Status or Response card, or pass up the
+opportunity. Then the other team is can use a Status or Response card, or pass.
+ The opportunity to use a Status or Response goes back and
+forth until neither team wishes to use one.
+(See Extended Card Play examples for more details.)
+Using teammate’s cards
+You cannot use another country’s Status or Response cards
+unless specified in the text of the card.
+
+[Scoring]
+As teams, the Axis and the Allies accumulate Victory Points
+throughout the game. Each side keeps track of their score
+with a Victory Point marker that is
+moved along the track on the edge
+of the map.
+During the Victory step of a country’s turn, gain 2 Victory Points per
+starred Supply Space where that
+country alone has an Army; or 1
+Victory Point is gained if the space
+also contains a teammate’s Army.
+In addition, certain Status cards
+may provide Victory Points during
+the Victory Step.
+If an enemy Army occupies a
+country’s Home Space, that country skips the Victory step of its
+turn. That country cannot gain
+ANY Victory Points during the
+Victory step of that turn, even
+from cards.
+However, if no is Step specified,
+Victory Points awards awarded on
+cards are scored immediately, even
+if a country’s home space is occupied.
+Victory is always determined for
+an entire side (Axis or Allies), not
+individual players or countries. 
+
+[Victory]
+Victory is achieved if a team leads by 30 or
+more points ahead of its opponent at the end of a round (following the United States’ turn). If victory is not achieved within
+20 rounds of play, the team with the higher score is victorious.
+In the event of a tie, the Axis team wins.
+
+[Timing within a Step]
+Many cards indicate activity at the beginning of a given step.
+The activity on cards such as this occurs before any other
+during the given step.
+• “At the Beginning of the Play step...” is before a card is
+played.
+• “At the Beginning of the Air Force step...” is before an Air
+Force may be deployed or marshaled.
+• “At the Beginning of the Supply step...” is before out-ofsupply pieces are removed from the board.
+• “At the Beginning of the Victory step...” is before points
+are collected.
+• “At the Beginning of the Discard step...” is before cards
+are discarded.
+• “At the Beginning of the Draw step...” is before cards are
+drawn.
+
+[Reactions]
+A reaction is defined as the use of the card text on a Status,
+Response, or Bolster card; or the use of Air Attack, Air Defense,
+Reposition, and Reallocate Resources. All reactions require a
+specific trigger, like a land battle, the beginning of a step, etc.
+Reaction Rules
+• Reactions are never required.
+• Reactions are resolved immediately after their trigger (for
+example: A “Beginning of the Play step” reaction cannot occur once a card play is declared for the step).
+• The two teams take turns reacting to the trigger, with the
+team that did not cause the trigger going first. If the trigger
+is a game mechanic (for example: the beginning of a Play
+step), then the team of the country that is taking its turn
+goes second.
+• If a team has multiple reactions to the same trigger, only one
+is used at a time. Then the other team can use a reaction.
+A team with multiple reactions to the same trigger can use
+them in the order it chooses, as long as the other side has a
+chance to use a reaction in between.
+• Reactions may trigger other reactions, which must be resolved before additional reactions to the original trigger are
+used.
+• If you do not use any of your reactions to a particular trigger,
+you can’t later react upon seeing further reactions to the
+same trigger. 
+
+[Air Forces in Battle]
+Air Defense
+When your Army or
+Navy would be removed
+from the board due to a
+battle, you may remove
+an Air Force from the
+same country in the
+same space instead, as
+a reaction. If you do not
+choose to (or can not)
+immediately use the Air
+Defense or Reposition
+reaction and the Air
+Force finds itself in the
+space without a supplied Army or Navy, the
+Air Force is removed.
+This reaction is not
+available if the Army
+or Navy is eliminated
+instead of battled.
+Air Attack
+When an opponent uses the Air Defense reaction, you may remove your own Air Force adjacent to the space battled in order
+to remove the Army or Navy originally targeted by the battle.
+
+[Reallocate Resources]
+Reallocate Resources allows you to discard 4 cards from your
+hand to search your draw deck for a card and add it to your
+hand. Only Build Army, Build Navy, Land Battle, Sea Battle, or
+Deploy Air Force cards can be chosen from your draw deck.
+Reallocate Resources is only allowed at the beginning of your
+Play step, before playing a card, and can only be used once per
+turn.
+You do not need to declare what type of card you want before
+searching your deck, but you must reveal the card selected to
+the other players. Afterwards, shuffle your draw deck.
+
+[France and China]
+When using this expansion, the forces of the Allied nations of
+China (Black) and France (Blue) are now represented with
+their own Armies, Navies, and Air Forces.
+However, the pieces are controlled through
+cards in the other Allied
+decks. China and France are
+not represented by additional players and do not have
+their own separate decks.
+Play involving French and
+Chinese pieces is always
+specified on a card.
+Cards that refer to a player’s pieces (or actions)
+without specifying the country refer to that
+Allied country’s own pieces, and not the French
+or Chinese pieces. For example, the United States card Wartime
+Production cannot be used to build a Chinese Army, nor can it
+be used in reaction to a Chinese Army being built.
+China and France score victory points independently of the
+United States and the United Kingdom. Thus France could
+potentially score Victory Points during the Victory step of the
+United Kingdom’s turn even if the United Kingdom’s Home
+space was occupied – the step is not skipped for France. Likewise, if the United Kingdom was occupied by an Allied Army
+and Western Europe Axis occupied, France would skip the
+Victory step (exception, Government in Exile), but the United
+Kingdom would still score.
+France
+• During setup, place a French Army in Western Europe.
+• French pieces must trace their own supply lines, as a separate country from the United Kingdom.
+• The Home space for France is Western Europe. The Government in Exile card moves the French Home space to the
+United Kingdom if Western Europe is occupied by an Axis
+Army.
+• During its turn, the United Kingdom scores points and
+checks supply for French pieces.
+• If you are playing with the Air Marshal expansion: During
+the Air step the United Kingdom player may discard a card
+from hand to marshal a French Air Force (in addition to
+deploying or marshaling a United Kingdom Air Force). The
+United Kingdom player repositions the French Air Force
+should the situation arise.
+China
+• During setup, place a Chinese Army in China.
+• Chinese pieces must trace their own supply lines, as a separate country from the United States.
+• The Home space for the Chinese is China. The substitute card
+American Volunteer Group Expands permanently moves the
+Chinese Home space to Szechuan.
+• During its turn, the United States scores points and checks
+supply for Chinese pieces.
+• If you are playing with the Air Marshal expansion: During
+the Air step, the United States player may discard a card
+from hand to marshal a Chinese Air Force (in addition to deploying or marshaling a United States Air Force). The United
+States player repositions the Chinese Air Force should the
+situation arise.
