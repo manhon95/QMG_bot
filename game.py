@@ -176,7 +176,7 @@ def play(bot, country, session):
 def status_play_cb(bot, query, query_list, session):
     db = sqlite3.connect(session.get_db_dir())
     session = game_session.find_session(query.message.chat_id)
-    cardfunction.play_status(bot, query_list[2], query_list[1], None, db)
+    cardfunction.play_status(bot, query_list[2], query_list[1], None, session)
     bot.edit_message_caption(chat_id=query.message.chat_id, message_id=query.message.message_id, caption='After play...')
     lock_id = session.add_lock()
     status_handler.send_status_card(bot, query_list[1], 'After Playing a card', lock_id, session, card_id = query_list[2])
@@ -224,7 +224,7 @@ def play_cb(bot, query, query_list, session):
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_photo(chat_id = query.message.chat_id, caption = function.countryid2name[query_list[1]] + " - Play a card", reply_markup = reply_markup, photo=open(session.get_dir() + '/tmp.jpg', 'rb'))
     elif query_list[2] == 'r_r':
-        text = "Reallocate Resources - Once per turn discard 4 cards from your hand to search your draw deck for a 'Build Army', 'Build Navy', 'Land Battle', 'Sea Battle', or 'Deploy Air Force' and add it to your hand."
+        text = "Reallocate Resources - Once per turn discard 3 cards from your hand to search your draw deck for a 'Build Army', 'Build Navy', 'Land Battle', 'Sea Battle', or 'Deploy Air Force' and add it to your hand."
         keyboard = [[InlineKeyboardButton('Confirm', callback_data="['play', '{}', 'r_r_confirm']".format(query_list[1]))],
                     [InlineKeyboardButton('Back', callback_data="['play', '{}', 'back']".format(query_list[1]))]]
         reply_markup = InlineKeyboardMarkup(keyboard)

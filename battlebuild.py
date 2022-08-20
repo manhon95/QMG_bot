@@ -11,7 +11,7 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageH
     #------------------------------------------Battle------------------------------------------
 def battle_info(bot, country, space_list, card_id, lock_id, session):
     print('battle info')
-    print(space_list)  
+    print(space_list)
     db = sqlite3.connect(session.get_db_dir())  
     name_list = function.get_name_list(space_list, db)
     print(name_list)
@@ -141,8 +141,8 @@ class remove_obj():
             if query_list[1] == 'back':
                 self.space_id = None
                 info = self.remove_info(session)
-                text = info[2]
-                reply_markup = info[3]
+                text = info[1]
+                reply_markup = info[2]
             else:
                 self.space_id = query_list[1]
                 location = db.execute("select name from space where spaceid = :id", {'id':self.space_id}).fetchall()
@@ -307,8 +307,8 @@ class move_obj():
             if query_list[1] == 'back':
                 self.space_id = None
                 info = self.move_info(db)
-                text = info[2]
-                reply_markup = info[3]
+                text = info[1]
+                reply_markup = info[2]
             else:
                 self.space_id = query_list[1]
                 location = db.execute("select name from space where spaceid = :id", {'id':self.space_id}).fetchall()

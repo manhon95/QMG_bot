@@ -24,16 +24,20 @@ def updatesupply(db):
     db.execute("update piece set supply = 0;")
     vp_space_list = db.execute("select distinct spaceid from space where supply = 1").fetchall()
     vp_space_list = [space[0] for space in vp_space_list]
-    #db.execute("update piece set supply = 1 where pieceid in (select piece.pieceid from piece inner join space on piece.location = space.spaceid where space.supply = 1 group by piece.pieceid);")
-    status_handler.status_supply(db)
+    db.execute("update piece set supply = 1 where pieceid in (select piece.pieceid from piece inner join space on piece.location = space.spaceid where space.supply = 1 group by piece.pieceid);")
+    #status_handler.status_supply(db)
     for country in axis_list:
+        print(vp_space_list)
         country_vp_space_list = list(status_handler.status_vp_location(country, vp_space_list, db))
+        print(country_vp_space_list)
         questionmarks = '?' * len(country_vp_space_list)
         db.execute("update piece set supply = 1 where control = '{}' and location in ({});".format(country, ','.join(questionmarks)), (country_vp_space_list))
         while db.execute("select count(*) from piece where supply = 0 and control = :country and location in (select distinct adjacency from space where spaceid in (select location from piece where supply = 1 and control = :country) and (straits in (select location from piece where control in (select id from country where side = 'Axis') and location != 'none') or straits = 'none') and (status in (select cardid from card where location = 'used') or status = 'none')) and pieceid not in (select pieceid from piece where type = 'navy' and control = :country and location not in (select distinct space.adjacency from piece inner join space on piece.location = space.spaceid where piece.control in (select id from country where side = 'Axis') and piece.type = 'army' and (space.straits in (select location from piece where control in (select id from country where side = 'Axis') and location != 'none') or space.straits = 'none')));", {'country':country}).fetchall()[0][0] > 0:
             db.execute("update piece set supply = 1 where supply = 0 and control = :country and location in (select distinct adjacency from space where spaceid in (select location from piece where supply = 1 and control = :country) and (straits in (select location from piece where control in (select id from country where side = 'Axis') and location != 'none') or straits = 'none') and (status in (select cardid from card where location = 'used') or status = 'none')) and pieceid not in (select pieceid from piece where type = 'navy' and control = :country and location not in (select distinct space.adjacency from piece inner join space on piece.location = space.spaceid where piece.control in (select id from country where side = 'Axis') and piece.type = 'army' and (space.straits in (select location from piece where control in (select id from country where side = 'Axis') and location != 'none') or space.straits = 'none')));", {'country':country})
     for country in allies_list:
+        print(vp_space_list)
         country_vp_space_list = list(status_handler.status_vp_location(country, vp_space_list, db))
+        print(country_vp_space_list)
         questionmarks = '?' * len(country_vp_space_list)
         db.execute("update piece set supply = 1 where control = '{}' and location in ({});".format(country, ','.join(questionmarks)), (country_vp_space_list))
         if country in ['uk', 'us', 'fr'] and db.execute("select location from card where cardid = 352;").fetchall()[0][0] == 'played':

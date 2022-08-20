@@ -142,7 +142,7 @@ chat_message = None
 @run_async
 def message(update, context):
     try:
-        logger.debug(update.message.from_user.full_name + ": " + update.message.text)
+        logger.debug(update.message.from_user.name + ": " + update.message.text)
     except Exception as e:
         traceback.print_exc()
 

@@ -26,7 +26,7 @@ def r_r(bot, country, session):
     if country == 'us' and db.execute("select location from card where cardid = 355;").fetchall()[0][0] == 'played':
         function.discardhand(bot, country, 1, session)
     else:
-        function.discardhand(bot, country, 4, session)
+        function.discardhand(bot, country, 3, session)
     lock_id = session.add_lock()
     info = r_r_info(bot, country, lock_id, db)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
@@ -607,8 +607,8 @@ def c36(bot, session):
     if 20 in function.control_space_list('ge', db) or 20 in function.control_space_list('su', db):
         lock_id = session.add_lock()
         chat_id = db.execute("select playerid from country where id = 'ge';").fetchall()
-        keyboard = [[InlineKeyboardButton("Build a Navy in the Baltic Sea", callback_data="['c35', 'b', {}]".format(lock_id))],
-                    [InlineKeyboardButton("Recuit an Army in Scandinavia", callback_data="['c35', 'r', {}]".format(lock_id))]]
+        keyboard = [[InlineKeyboardButton("Build a Navy in the Baltic Sea", callback_data="['c36', 'b', {}]".format(lock_id))],
+                    [InlineKeyboardButton("Recuit an Army in Scandinavia", callback_data="['c36', 'r', {}]".format(lock_id))]]
         text = "Choose what to do first:"
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_message(chat_id = chat_id[0][0], text = text, reply_markup = reply_markup)
@@ -950,9 +950,9 @@ def c64(bot, handler_id, session):
     session.remove_list.append(battlebuild.remove_obj('ge', space_list, 64, lock_id, 'air', session))
     print("remove_id: " + str(len(session.remove_list)-1))
     remove_id = len(session.remove_list)-1
-    info = session.remove_list[self_remove_id].remove_info(session)
+    info = session.remove_list[remove_id].remove_info(session)
     bot.send_message(chat_id = info[0], text = info[1], reply_markup = info[2])
-    lock_id = session.add_lock()
+    session.thread_lock(lock_id)
 
     #------------------c65----------------------
 def c65_cost(bot, session):
@@ -1552,7 +1552,7 @@ def c150(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     country_list = ['ge', 'it', 'jp']
     for country in country_list:
-        discard = db.execute("select cardid from card where ((location in ('discardd', 'discardu')) or (location = 'played' and type not in ('Status', 'Response', 'Bolster')) or (location = 'used' and type in ('Response', 'Bolster')))) and control =:country;", {'country':country}).fetchall()
+        discard = db.execute("select cardid from card where ((location in ('discardd', 'discardu')) or (location = 'played' and type not in ('Status', 'Response', 'Bolster')) or (location = 'used' and type in ('Response', 'Bolster'))) and control =:country;", {'country':country}).fetchall()
         function.movecardtop(bot, random.choice(discard)[0], db)
     function.add_vp(bot, 'it', 1, db)
     
@@ -3440,17 +3440,18 @@ def c341_cb(bot, query, query_list, session):
 def c342(bot, session):
     db = sqlite3.connect(session.get_db_dir())
     space_list = {7:'Southern Ocean', 10:'South Altantic'}
-    recuit_list = function.recuit_list('us', db)
-    if 6 in recuit_list:
-        battlebuild.recuit(bot, 'us', 6, 342, session)
-    if not set(space_list).isdisjoint(set(recuit_list)):
+    build_list = function.build_list('us', db)
+    if 6 in build_list:
+        battlebuild.build(bot, 'us', 6, 342, session)
+    build_list = function.build_list('us', db)
+    if not set(space_list).isdisjoint(set(build_list)):
         lock_id = session.add_lock()
         keyboard = []
         for space in space_list:
-            if space in recuit_list:
+            if space in build_list:
                 keyboard.append([InlineKeyboardButton(space_list[space], callback_data="['c342', {}, {}]".format(space, lock_id))])
         chat_id = db.execute("select playerid from country where id = 'us';").fetchall()
-        text = "Recruit a Navy in the South Atlantic or the Southern Ocean:"
+        text = "Build a Navy in the South Atlantic or the Southern Ocean:"
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_message(chat_id = chat_id[0][0], text = text, reply_markup = reply_markup)
         session.thread_lock(lock_id)
@@ -3458,7 +3459,7 @@ def c342(bot, session):
 def c342_cb(bot, query, query_list, session):
     db = sqlite3.connect(session.get_db_dir())
     bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
-    battlebuild.recuit(bot, 'us', query_list[1], 342, session)
+    battlebuild.build(bot, 'us', query_list[1], 342, session)
     session.release_lock(query_list[-1])
 
     #------------------c343----------------------

@@ -328,9 +328,9 @@ def status_battle_handler_info(country, handler_id, session):
             if country == 'uk':
                 if card[0] == 229 and active_country == 'uk' and space_info[0][1] == 'sea':
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_battle', '{}', {}, {}]".format(country, handler_id, card[0]))])
-                if card[0] == 230 and piece_info[0][0] == 'uk' and space_info[0][0] in function.supplied_space_list('uk', db, space_type = 'land'):
+                if card[0] == 230 and piece_info[0][0] == 'uk' and space_info[0][0] in function.supplied_space_list('uk', db, space_type = 'land') and piece_info[0][3] == 'army':
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_battle', '{}', {}, {}]".format(country, handler_id, card[0]))])
-                if card[0] == 231 and piece_info[0][0] in ['uk','us'] and space_info[0][0] in list(set(function.within('Allies', function.control_supplied_space_list('uk', db, space_type = 'land'), 1, db)) & set(function.supplied_space_list(piece_info[0][0], db, space_type = 'sea'))):
+                if card[0] == 231 and piece_info[0][0] in ['uk','us'] and space_info[0][0] in list(set(function.within('Allies', function.supplied_space_list('uk', db, space_type = 'land'), 1, db)) & set(function.supplied_space_list(piece_info[0][0], db, space_type = 'sea'))):
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_battle', '{}', {}, {}]".format(country, handler_id, card[0]))])
                 if card[0] == 232 and active_country in ['uk','us','fr'] and space_info[0][0] in [12,13,19,25]:
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_battle', '{}', {}, {}]".format(country, handler_id, card[0]))])
@@ -368,7 +368,7 @@ def status_battle_handler_info(country, handler_id, session):
             if country == 'us':
                 if card[0] == 344 and active_country == 'us' and space_info[0][1] == 'sea':
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_battle', '{}', {}, {}]".format(country, handler_id, card[0]))])
-                if card[0] == 346 and active_country == 'us' and space_info[0][1] == 'land' and space_info[0][0] in function.within('Allies', function.control_supplied_space_list('us', db, space_type = 'sea'), 1, db):
+                if card[0] == 346 and active_country == 'us' and space_info[0][1] == 'land' and space_info[0][0] in function.within('Allies', function.control_supplied_space_list('us', db, space_type = 'sea'), 1, db) and space_info[0][0] in function.build_list('us', db):
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_battle', '{}', {}, {}]".format(country, handler_id, card[0]))])
                 if card[0] == 350 and piece_info[0][0] == 'us' and piece_info[0][3] == 'navy' and space_info[0][0] in function.supplied_space_list('us', db, space_type = 'sea'):
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_battle', '{}', {}, {}]".format(country, handler_id, card[0]))])
@@ -415,6 +415,7 @@ def status_build_handler_info(country, handler_id, session):
             response_count = db.execute("select count(*) from card where location = 'hand' and control ='jp' and type = 'Response';").fetchall()[0][0]
         if country == 'su':
             ba_count = db.execute("select count(*) from card where location = 'hand' and control ='su' and type = 'Build Army';").fetchall()[0][0]
+            lb_count = db.execute("select count(*) from card where location = 'hand' and control ='su' and type = 'Land Battle';").fetchall()[0][0]
         for card in avaliable_card:
             if country == 'ge':
                 if card[0] == 42 and active_country == 'ge' and space_info[0][1] == 'land':
@@ -450,7 +451,10 @@ def status_build_handler_info(country, handler_id, session):
                     else:
                         keyboard.append([InlineKeyboardButton(card[1] + ' - No Build Army in hand', callback_data="['status_build', '{}', {}, 'no_play', {}]".format(country, handler_id, card[0]))])
                 if card[0] == 282 and active_country == 'su' and space_info[0][1] == 'land':
-                    keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_build', '{}', {}, {}]".format(country, handler_id, card[0]))])
+                    if ba_count > 0 and lb_count > 0:
+                        keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_build', '{}', {}, {}]".format(country, handler_id, card[0]))])
+                    else:
+                        keyboard.append([InlineKeyboardButton(card[1] + ' - No Build Army/Land Battle in hand', callback_data="['status_build', '{}', {}, 'no_play', {}]".format(country, handler_id, card[0]))])
                 if card[0] == 290 and active_country in ['ge', 'jp', 'it'] and space_info[0][0] in [20,24,28,30,31]:
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_build', '{}', {}, {}]".format(country, handler_id, card[0]))])
             if country == 'us':
@@ -1184,30 +1188,30 @@ def status_battle_location(country, db):
     #----------------------VP Location-----------------------
 def status_vp_location(country, space_list, db):
     print('in status_vp_location - ' + country)
+    temp_space_list = space_list.copy()
     s = {'ge': [281], 'jp':[], 'it':[281], 'uk':[225, 226], 'su':[277],'us':[], 'fr':[228], 'ch':[345]}
     questionmarks = '?' * len(s[country])
     avaliable_card = db.execute("select cardid, name from card where location = 'played' and cardid in ({});".format(','.join(questionmarks)), (s[country])).fetchall()
     if len(avaliable_card) > 0:
-        extra_space_list = []
         for card in avaliable_card:
             if country in ['ge', 'it']:
                 if card[0] == 281 and 24 in space_list:
-                    space_list.remove(24)
+                    temp_space_list.remove(24)
             if country == 'uk':
                 if card[0] == 225:
-                    space_list.append(1)
+                    temp_space_list.append(1)
                 if card[0] == 226:
-                    space_list.append(21)
+                    temp_space_list.append(21)
             if country == 'su':
                 if card[0] == 277:
-                    space_list.append(30)
+                    temp_space_list.append(30)
             if country == 'fr':
                 if card[0] == 228:
-                    space_list.append(13)        
+                    temp_space_list.append(13)        
             if country == 'ch':
                 if card[0] == 345:
-                    space_list.append(35)
-    return space_list
+                    temp_space_list.append(35)
+    return temp_space_list
 
     #----------------------Supply-----------------------
 def status_supply(db):
