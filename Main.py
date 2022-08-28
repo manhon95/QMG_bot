@@ -126,7 +126,7 @@ def cb(update, context):
             game.status_play_cb(bot, query, query_list, session)
         if query_list[0] in ('status_battle','status_build','status_remove','status_recuit','status_deploy','status_before_play','status_after_play','status_draw','status_discard','status_supply','status_victory','status_ew'):
             status_handler.send_status_card_cb(bot, query, query_list, session)
-        if query_list[0] in ('c20','c28','c30','c31','c33','c35','c36','c37','c48','c66','c100','c102','c144','c147','c149','c152','c175','c178','c202','c203','c205','c206','c209','c211','c219','c227','c271','c272','c273','c287','c298','c322','c325','c326','c328','c331','c332','c334','c335','c336','c337','c341','c342','c351','c365','c366','c369'):
+        if query_list[0] in ('c20','c28','c30','c31','c33','c35','c36','c37','c48','c66','c100','c102','c144','c147','c149','c152','c175','c178','c202','c203','c205','c206','c209','c211','c219','c227','c271','c272','c273','c287','c298','c322','c325','c326','c328','c331','c332','c334','c335','c336','c337','c340','c341','c342','c351','c365','c366','c369'):
             eval('cardfunction.' + query_list[0] + '_cb(bot, query, query_list, session)')
     except Exception as e:
         traceback.print_exc()

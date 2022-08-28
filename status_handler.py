@@ -366,7 +366,7 @@ def status_battle_handler_info(country, handler_id, session):
                     else:
                         keyboard.append([InlineKeyboardButton(card[1] + ' - No Build Army in hand', callback_data="['status_battle', '{}', {}, 'no_play', {}]".format(country, handler_id, card[0]))])
             if country == 'us':
-                if card[0] == 344 and active_country == 'us' and space_info[0][1] == 'sea':
+                if card[0] == 344 and active_country == 'us' and space_info[0][1] == 'sea' and function.can_build(active_country, space_info[0][0], db):
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_battle', '{}', {}, {}]".format(country, handler_id, card[0]))])
                 if card[0] == 346 and active_country == 'us' and space_info[0][1] == 'land' and space_info[0][0] in function.within('Allies', function.control_supplied_space_list('us', db, space_type = 'sea'), 1, db) and space_info[0][0] in function.build_list('us', db):
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_battle', '{}', {}, {}]".format(country, handler_id, card[0]))])
@@ -500,7 +500,7 @@ def status_remove_handler_info(country, handler_id, session):
             piece_count = db.execute("select count(*) from piece where control = 'su' and type = 'army' and location != 'none';").fetchall()[0][0]
         for card in avaliable_card:
             if country == 'jp':
-                if card[0] == 98 and piece_info[0][0] == 'jp' and space_info[0][0] in function.supplied_space_list('jp', db, space_type = 'sea'):   
+                if card[0] == 98 and piece_info[0][0] == 'jp' and piece_info[0][3] == 'navy' and space_info[0][0] in function.supplied_space_list('jp', db, space_type = 'sea'):   
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_remove', '{}', {}, {}]".format(country, handler_id, card[0]))])
                 if card[0] == 107 and piece_info[0][0] == 'jp' and space_info[0][0] in list(set([35,37,42]) & set(function.supplied_space_list('jp', db, space_type = 'land'))):
                     keyboard.append([InlineKeyboardButton(card[1], callback_data="['status_remove', '{}', {}, {}]".format(country, handler_id, card[0]))])
